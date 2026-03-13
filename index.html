@@ -1942,8 +1942,9 @@ const app = {
         const chip = document.getElementById('nav-heart-chip');
         const rateEl = document.getElementById('nav-heart-rate');
         if (!chip || !rateEl) return;
+        const chatVisible = document.getElementById('chat-view')?.classList.contains('active');
         const overlayActive = app.profileDetailOpen || app.contactDetailOpen || app.contactMomentsOpen;
-        if (!contact || !state.currentChatId || overlayActive) {
+        if (!contact || !state.currentChatId || overlayActive || !chatVisible) {
             chip.classList.remove('active', 'warm', 'racing');
             return;
         }
@@ -1959,8 +1960,14 @@ const app = {
 
     tickHeartbeat: () => {
         state.contacts.forEach(contact => app.syncHeartbeat(contact, Date.now()));
+        const chatVisible = document.getElementById('chat-view')?.classList.contains('active');
+        if (!chatVisible) {
+            app.renderHeartChip(null);
+            return;
+        }
         const active = app.getActiveContact();
         if (active && state.currentChatId) app.renderHeartChip(active);
+        else app.renderHeartChip(null);
     },
 
     randomInt: (min, max) => {
