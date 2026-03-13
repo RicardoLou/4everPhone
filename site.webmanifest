@@ -1,0 +1,10 @@
+{
+  "name": "NN Phone",
+  "short_name": "NN Phone",
+  "description": "本地运行的 AI 伴侣聊天页面",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f6f2eb",
+  "theme_color": "#f6f2eb",
+  "orientation": "portrait"
+}

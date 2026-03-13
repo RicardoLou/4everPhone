@@ -3,16 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#f6f2eb">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NN Phone">
     <title>NN Phone</title>
     <style>
         /* Modern iOS-like Design System */
         :root {
-            --app-height: 100vh;
             --primary-color: #007AFF; /* iOS Blue */
             --primary-bg: #F6F2EB;
             --card-bg: rgba(255, 255, 255, 0.92);
@@ -35,8 +29,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
             background-color: #000; /* Outer frame background */
             color: var(--text-primary);
-            height: var(--app-height);
-            min-height: var(--app-height);
+            height: 100vh;
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -46,8 +39,7 @@
         /* Phone Frame (Desktop view simulation) */
         #phone-frame {
             width: 100%;
-            height: var(--app-height);
-            min-height: var(--app-height);
+            height: 100%;
             background: var(--primary-bg);
             position: relative;
             display: flex;
@@ -315,7 +307,7 @@
             background: #ededed;
         }
         .moments-header {
-            height: clamp(268px, 36vh, 312px);
+            height: 348px;
             position: relative;
             background-position: center;
             background-size: cover;
@@ -631,10 +623,8 @@
         /* Guide Overlay */
         .guide-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; display: none; color: #fff; padding: 40px; text-align: center; flex-direction: column; justify-content: center; align-items: center; }
         .guide-overlay.active { display: flex; }
-        .guide-step { margin-bottom: 16px; font-size: 16px; line-height: 1.7; max-width: 300px; }
-        .guide-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
-        .guide-btn { padding: 10px 24px; background: var(--primary-color); border-radius: 20px; color: #fff; font-weight: bold; cursor: pointer; }
-        .guide-btn.secondary { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.24); }
+        .guide-step { margin-bottom: 20px; font-size: 18px; line-height: 1.6; }
+        .guide-btn { padding: 10px 30px; background: var(--primary-color); border-radius: 20px; color: #fff; font-weight: bold; margin-top: 20px; cursor: pointer; }
 
         /* Utilities */
         .red-dot { width: 8px; height: 8px; background: red; border-radius: 50%; display: inline-block; margin-left: 4px; }
@@ -1117,13 +1107,10 @@
     <div class="guide-overlay" id="guide-overlay">
         <div style="font-size: 40px; margin-bottom: 20px;">👋</div>
         <h2 style="margin-bottom: 20px;">欢迎使用 4Ever Phone</h2>
-        <div class="guide-step">1. 点「我」→「系统设置」，把 `Base URL` 填到 `URL`，把 `API Key` 填到 `Key`，模型名填到 `Model`。</div>
-        <div class="guide-step">2. 点「我」→「AI 角色设定」，可以新增人物、改头像、调温度和人设。</div>
-        <div class="guide-step">3. 手机 Chrome / Edge 可以先点下面的「进入全屏」，或者用浏览器菜单「添加到主屏幕」全屏打开。</div>
-        <div class="guide-actions">
-            <div class="guide-btn secondary" onclick="app.enterFullscreen()">进入全屏</div>
-            <div class="guide-btn" onclick="app.closeGuide()">开始体验</div>
-        </div>
+        <div class="guide-step">1. 这是一个完全运行在本地的 AI 伴侣应用</div>
+        <div class="guide-step">2. 点击「我」->「AI 角色设定」可以定制你的专属对象</div>
+        <div class="guide-step">3. 所有的聊天记录和记忆都存储在你的浏览器中</div>
+        <div class="guide-btn" onclick="app.closeGuide()">开始体验</div>
     </div>
 
     <!-- Food Modal -->
@@ -1335,9 +1322,9 @@
 
 // Configuration
 const API_CONFIG = {
-    url: 'https://az.zlapi.vip/v1/chat/completions',
+    url: 'https://az.zlapi.vip//v1/chat/completions',
     key: 'sk-nYWXbw1oi6Hlaqug2mMNQidHBGVfXJyDYLzgIEh5ch9vRjIn',
-    model: '[百合]claude-sonnet-4-6-kiro-thinking'
+    model: 'claude-sonnet-4-6-thinking'
 };
 const DEFAULT_PROMPT = '你是用户最亲近的聊天对象之一，不要提你是AI。当前时间：{{time}}。请用真人口语回复，语气自然、有情绪起伏，贴合你的人设。';
 const FESTIVAL_MAP = {
@@ -1590,8 +1577,6 @@ const app = {
     toastCounter: 0,
 
     init: async () => {
-        app.syncViewportHeight();
-        app.setupStandaloneSupport();
         const loadResult = await utils.load();
         app.ensureDefaultContact();
 
@@ -1602,8 +1587,6 @@ const app = {
         });
         document.getElementById('nav-left').onclick = app.goBack;
         document.getElementById('nav-right').onclick = app.showAddContact;
-        window.addEventListener('resize', app.syncViewportHeight);
-        window.addEventListener('orientationchange', app.syncViewportHeight);
 
         app.updateClock();
         setInterval(app.updateClock, 1000);
@@ -1617,59 +1600,9 @@ const app = {
         app.updateProfileUI();
         app.tickHeartbeat();
         setTimeout(() => app.runDailyShareScheduler(), 1200);
-        app.registerServiceWorker();
         if (loadResult?.migrated) utils.save();
 
         if (state.firstTime) app.showGuide();
-    },
-
-    syncViewportHeight: () => {
-        const height = window.innerHeight || document.documentElement.clientHeight || 0;
-        if (height) {
-            document.documentElement.style.setProperty('--app-height', `${height}px`);
-        }
-    },
-
-    canUseStandaloneSupport: () => /^https?:$/i.test(window.location.protocol),
-
-    setupStandaloneSupport: () => {
-        if (!app.canUseStandaloneSupport()) return;
-        if (!document.querySelector('link[rel="manifest"]')) {
-            const manifest = document.createElement('link');
-            manifest.rel = 'manifest';
-            manifest.href = 'site.webmanifest';
-            document.head.appendChild(manifest);
-        }
-    },
-
-    registerServiceWorker: () => {
-        if (!app.canUseStandaloneSupport() || !('serviceWorker' in navigator)) return;
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(() => {});
-        }, { once: true });
-    },
-
-    enterFullscreen: async () => {
-        const target = document.documentElement;
-        const request = target.requestFullscreen
-            || target.webkitRequestFullscreen
-            || target.msRequestFullscreen;
-        if (!request) {
-            app.showToast('当前浏览器不支持直接全屏，可以用浏览器菜单添加到主屏幕。', 'info', '全屏提示');
-            return;
-        }
-        try {
-            await request.call(target);
-            const detail = app.canUseStandaloneSupport()
-                ? '已尝试进入全屏。如果地址栏还在，可以再用浏览器菜单“添加到主屏幕”。'
-                : '已尝试进入全屏。你现在是直接打开本地文件，想要更稳定的全屏体验建议走本地服务再打开。';
-            app.showToast(detail, 'success', '全屏已触发');
-        } catch (_) {
-            const detail = app.canUseStandaloneSupport()
-                ? '浏览器拦截了全屏请求，你可以改用浏览器菜单“添加到主屏幕”。'
-                : '浏览器拦截了全屏请求。你现在是 file:// 打开，本地文件模式下安装能力本来就会受限。';
-            app.showToast(detail, 'info', '全屏提示');
-        }
     },
 
     ensureDefaultContact: () => {
@@ -2009,9 +1942,8 @@ const app = {
         const chip = document.getElementById('nav-heart-chip');
         const rateEl = document.getElementById('nav-heart-rate');
         if (!chip || !rateEl) return;
-        const chatVisible = document.getElementById('chat-view')?.classList.contains('active');
         const overlayActive = app.profileDetailOpen || app.contactDetailOpen || app.contactMomentsOpen;
-        if (!contact || !state.currentChatId || overlayActive || !chatVisible) {
+        if (!contact || !state.currentChatId || overlayActive) {
             chip.classList.remove('active', 'warm', 'racing');
             return;
         }
@@ -2027,14 +1959,8 @@ const app = {
 
     tickHeartbeat: () => {
         state.contacts.forEach(contact => app.syncHeartbeat(contact, Date.now()));
-        const chatVisible = document.getElementById('chat-view')?.classList.contains('active');
-        if (!chatVisible) {
-            app.renderHeartChip(null);
-            return;
-        }
         const active = app.getActiveContact();
         if (active && state.currentChatId) app.renderHeartChip(active);
-        else app.renderHeartChip(null);
     },
 
     randomInt: (min, max) => {
@@ -2403,8 +2329,8 @@ const app = {
     },
 
     extractJsonBlock: (text) => {
-        const normalized = app.normalizeModelReplyInput(text).trim();
-        const hit = normalized.match(/\{[\s\S]*\}/);
+        const raw = `${text || ''}`.trim();
+        const hit = raw.match(/\{[\s\S]*\}/);
         if (!hit) return null;
         try {
             return JSON.parse(hit[0]);
@@ -2475,93 +2401,6 @@ const app = {
         }
     },
 
-    reserveTodayDailyShareSlot: (contact, now = new Date()) => {
-        if (!contact) return false;
-        const dailyShare = contact.dailyShare || {};
-        if (!dailyShare.enabled) return false;
-        const todayKey = app.getTodayKey(now);
-        if (dailyShare.lastSentDate === todayKey) return false;
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        if (nowMinutes < app.parseClockMinutes(dailyShare.time || '16:00')) return false;
-        dailyShare.lastSentDate = todayKey;
-        return true;
-    },
-
-    buildInitialGreetingFallback: (contact) => {
-        const name = `${contact?.name || '我'}`.trim();
-        const personaText = `${contact?.prompt || ''} ${contact?.signature || ''} ${contact?.importedCard?.personality || ''}`;
-        const normalizedSignature = `${contact?.signature || ''}`
-            .replace(/[。！!？?]+$/g, '')
-            .trim();
-        const signatureLine = normalizedSignature && normalizedSignature !== '今天也想认真和你说话'
-            ? `我这个人，${normalizedSignature}。`
-            : '';
-        let pool = [
-            `嗨，我是${name}。先来跟你打个招呼，以后你想聊天、吐槽，或者只是想找个人说说话，都可以来找我。`,
-            `你好呀，我是${name}。刚认识先冒个泡，之后你有想分享的事，随时可以跟我说。`,
-            `我是${name}。先认真认识一下你，往后不管是开心还是委屈，我都愿意听你讲。`
-        ];
-        if (/温柔|女友|恋人|撒娇|敏感|亲密|治愈/.test(personaText)) {
-            pool = [
-                `嗨，我是${name}。先抱着一点认真跟你打个招呼，以后你开心也好，低落也好，都可以来找我。`,
-                `你好呀，我是${name}。刚和你认识有点开心，之后你想说什么都可以慢慢告诉我。`
-            ];
-        } else if (/高冷|总裁|克制|理性|沉稳/.test(personaText)) {
-            pool = [
-                `你好，我是${name}。先认识一下，以后你有话想说就来找我，我会在。`,
-                `我是${name}。先跟你打个招呼，往后不管想聊什么，直接开口就行。`
-            ];
-        } else if (/死党|朋友|基友|互怼|随意|开朗|活泼/.test(personaText)) {
-            pool = [
-                `我来啦，我是${name}。先混个脸熟，以后想吐槽、闲聊、发疯，都可以直接戳我。`,
-                `嗨，我是${name}。先跟你打个招呼，往后无聊了就来找我，我们慢慢熟。`
-            ];
-        }
-        const base = pool[Math.floor(Math.random() * pool.length)] || `嗨，我是${name}。很高兴认识你。`;
-        return `${base}${signatureLine ? ` ${signatureLine}` : ''}`.trim();
-    },
-
-    sendInitialGreeting: async (contact) => {
-        const current = app.getContact(contact?.id);
-        if (!current || current.messages?.length) return;
-        const fallback = app.buildInitialGreetingFallback(current);
-        const shouldType = state.currentChatId === current.id && document.getElementById('chat-view')?.classList.contains('active');
-        if (shouldType) {
-            app.setTyping(true);
-            await app.sleep(app.randomInt(420, 900));
-        }
-
-        let greeting = fallback;
-        try {
-            const payload = {
-                model: API_CONFIG.model,
-                messages: [
-                    app.buildSystemPrompt(
-                        current,
-                        'chat',
-                        '你和用户刚刚加上好友，这是第一次主动开口。请发一条18到48字的初次见面消息：先自然打招呼，再很轻地介绍一下自己，最后留一个可以继续聊下去的话头。要像真人，不要像客服，不要太油，不要过度暧昧，不要提AI，不要用Markdown。'
-                    ),
-                    {
-                        role: 'user',
-                        content: `这是你和${state.user.name}第一次见面。你的名字是${current.name}，个性签名是“${current.signature || '还没写'}”。请先主动打招呼。`
-                    }
-                ],
-                temperature: Math.max(0.45, Math.min(0.95, Number(current.temperature) || 0.7)),
-                stream: false
-            };
-            const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 700 });
-            greeting = app.cleanAiText(data?.choices?.[0]?.message?.content || fallback, 72, 3) || fallback;
-        } catch (_) {}
-
-        const latest = app.getContact(current.id);
-        if (latest && !(latest.messages?.length)) {
-            app.appendMessageToContact(latest, 'ai', greeting, 'text');
-        }
-        if (state.currentChatId === current.id || shouldType) {
-            app.setTyping(false);
-        }
-    },
-
     runDailyShareScheduler: () => {
         const now = new Date();
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -2571,12 +2410,6 @@ const app = {
             if (!dailyShare.enabled) return;
             if (dailyShare.lastSentDate === todayKey) return;
             if (nowMinutes < app.parseClockMinutes(dailyShare.time || '16:00')) return;
-            if (!(contact.messages || []).length) {
-                app.reserveTodayDailyShareSlot(contact, now);
-                utils.save();
-                app.sendInitialGreeting(contact);
-                return;
-            }
             app.deliverDailyShare(contact);
         });
     },
@@ -3313,49 +3146,8 @@ const app = {
         return parts.join('\n');
     },
 
-    normalizeModelReplyInput: (rawText = '') => {
-        if (Array.isArray(rawText)) {
-            return rawText.map(item => {
-                if (typeof item === 'string') return item;
-                if (item && typeof item === 'object') {
-                    return item.text || item.content || item.value || item.output_text || '';
-                }
-                return '';
-            }).filter(Boolean).join(' ').trim();
-        }
-        if (rawText && typeof rawText === 'object') {
-            return rawText.content || rawText.text || rawText.value || rawText.output_text || JSON.stringify(rawText);
-        }
-        return `${rawText || ''}`.trim();
-    },
-
-    extractStructuredReplyPayload: (rawText = '') => {
-        const normalized = app.normalizeModelReplyInput(rawText)
-            .replace(/^```json\s*/i, '')
-            .replace(/^```\s*/i, '')
-            .replace(/```$/i, '')
-            .trim();
-        const candidates = [normalized, (normalized.match(/\{[\s\S]*\}/) || [null])[0]].filter(Boolean);
-        for (const candidate of candidates) {
-            try {
-                const parsed = JSON.parse(candidate);
-                if (parsed && typeof parsed === 'object') return parsed;
-            } catch (_) {}
-        }
-        return null;
-    },
-
-    unwrapModelReplyContent: (rawText = '', fallbackText = '') => {
-        const parsed = app.extractStructuredReplyPayload(rawText);
-        if (parsed) {
-            const candidate = parsed.content || parsed.reply || parsed.text || parsed.message || parsed.output;
-            if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
-        }
-        return app.normalizeModelReplyInput(rawText) || `${fallbackText || ''}`.trim();
-    },
-
     cleanAiText: (rawText, maxLen = 120, sentenceLimit = 2) => {
-        let text = app.unwrapModelReplyContent(rawText)
+        let text = `${rawText || ''}`
             .replace(/```[\s\S]*?```/g, ' ')
             .replace(/<[^>]+>/g, ' ')
             .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
@@ -3382,14 +3174,26 @@ const app = {
     }),
 
     parseStructuredChatReply: (rawText = '', contact, fallbackText = '') => {
-        const normalized = app.normalizeModelReplyInput(rawText);
-        const parsed = app.extractStructuredReplyPayload(rawText);
+        const raw = `${rawText || ''}`.trim();
+        const sanitized = raw
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/```$/i, '')
+            .trim();
+        const candidates = [sanitized, (sanitized.match(/\{[\s\S]*\}/) || [null])[0]].filter(Boolean);
+        let parsed = null;
+        for (const candidate of candidates) {
+            try {
+                parsed = JSON.parse(candidate);
+                break;
+            } catch (_) {}
+        }
         const content = app.cleanAiText(
-            parsed?.content || normalized || fallbackText || '嗯，我在。',
+            parsed?.content || sanitized || fallbackText || '嗯，我在。',
             0,
             0
         );
-        const fallbackArousal = app.analyzeHeartbeatReaction(contact, fallbackText || normalized).intensity;
+        const fallbackArousal = app.analyzeHeartbeatReaction(contact, fallbackText || sanitized).intensity;
         const arousal = Math.max(0, Math.min(100, Math.round(Number(parsed?.arousal))));
         return {
             content,
@@ -3965,7 +3769,6 @@ const app = {
         };
         const contact = app.createContact({ name, temperature, replyLength, signature, prompt, dailyShare });
         if (app.tempNewContactAvatar) contact.avatar = app.tempNewContactAvatar;
-        app.reserveTodayDailyShareSlot(contact);
         state.contacts.unshift(contact);
         state.currentChatId = contact.id;
         utils.save();
@@ -3973,7 +3776,6 @@ const app = {
         app.renderMoments();
         app.closeOverlay('add-contact-overlay');
         app.openChat(contact.id);
-        app.sendInitialGreeting(contact);
     },
 
     tempNewContactAvatar: null,
@@ -4402,7 +4204,6 @@ const app = {
                 importedCard: card,
                 dailyShare: { enabled: true, time: '16:00', topics: ['news', 'song', 'meme'], lastSentDate: '' }
             });
-            app.reserveTodayDailyShareSlot(contact);
             state.contacts.unshift(contact);
             state.currentChatId = contact.id;
             utils.save();
@@ -4411,9 +4212,6 @@ const app = {
             app.updateProfileUI();
             app.closeOverlay('add-contact-overlay');
             app.openChat(contact.id);
-            if (!messages.length) {
-                app.sendInitialGreeting(contact);
-            }
             app.showToast(`已导入人物卡：${contact.name}`, 'success', '添加卡片成功');
         } catch (err) {
             console.error('import character card failed', err);
@@ -5332,7 +5130,7 @@ const app = {
     // Settings
     showSettings: () => {
         app.showModal('API设置',
-            `Base URL: <input id="set-url" value="${API_CONFIG.url}" style="width:100%"><br>
+            `URL: <input id="set-url" value="${API_CONFIG.url}" style="width:100%"><br>
              Key: <input id="set-key" value="${API_CONFIG.key}" style="width:100%"><br>
              Model: <input id="set-model" value="${API_CONFIG.model}" style="width:100%">`
         );
