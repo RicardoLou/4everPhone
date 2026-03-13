@@ -2527,11 +2527,6 @@ const app = {
         app.deleteContact(app.contactDetailContactId);
     },
 
-    deletePersonaContact: () => {
-        if (!app.personaEditingContactId) return;
-        app.deleteContact(app.personaEditingContactId);
-    },
-
     renderChatHeader: (contact, titleOverride = '') => {
         const navTitle = document.getElementById('nav-title');
         const chatMeta = document.getElementById('nav-chat-meta');
