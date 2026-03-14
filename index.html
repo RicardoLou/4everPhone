@@ -1297,6 +1297,14 @@
                         <option value="on">开启</option>
                     </select>
                     <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">默认关闭。开启后，TA 会每天随机挑一个时间主动来找你，内容由 AI 根据最近 3 到 5 条对话自己决定。</div>
+                    <label style="font-size:12px;color:#666;">朋友圈频率（按天）</label>
+                    <select id="new-contact-moment-limit" style="margin-bottom:10px;">
+                        <option value="auto">自动判断</option>
+                        <option value="1">1条/天</option>
+                        <option value="2">2条/天</option>
+                        <option value="3">3条/天</option>
+                    </select>
+                    <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">控制 TA 每天最多发几条朋友圈。自动判断会按互动活跃度和人设动态调整。</div>
                     <div style="margin:4px 0 12px;">
                         <button class="send-btn" style="margin:0;width:100%;background:#111827;" onclick="document.getElementById('character-card-upload').click()">导入 PNG 人物卡</button>
                         <div style="font-size:12px;color:#999;line-height:1.45;margin-top:8px;">支持从角色卡 PNG 中读取名字、描述、性格、开场白和世界书，导入后会直接新增联系人。</div>
@@ -1443,7 +1451,6 @@ const DAILY_SHARE_SOURCE_FAIL_COOLDOWN_MS = 45 * 60 * 1000;
 const AUTO_MOMENT_MIN_GAP_MS = 20 * 60 * 60 * 1000;
 const AUTO_MOMENT_MIN_DELAY_MS = 22 * 60 * 60 * 1000;
 const AUTO_MOMENT_MAX_DELAY_MS = 72 * 60 * 60 * 1000;
-const AUTO_MOMENT_MAX_PER_DAY = 1;
 const LOCAL_DB_NAME = 'nn_phone_local_db';
 const LOCAL_DB_VERSION = 1;
 const LOCAL_DB_STORE = 'kv';
@@ -1831,6 +1838,7 @@ const app = {
             nextAutoMomentAt: Number(contact.nextAutoMomentAt) || 0,
             autoMomentDailyCount: Number(contact.autoMomentDailyCount) || 0,
             autoMomentDailyDate: contact.autoMomentDailyDate || '',
+            momentDailyPostLimit: app.normalizeMomentDailyPostLimit(contact.momentDailyPostLimit || 'auto'),
             pinned: !!contact.pinned,
             pinnedAt: Number(contact.pinnedAt) || 0,
             heartbeat: {
@@ -1906,6 +1914,7 @@ const app = {
             nextAutoMomentAt: Number(opts.nextAutoMomentAt) || 0,
             autoMomentDailyCount: Number(opts.autoMomentDailyCount) || 0,
             autoMomentDailyDate: opts.autoMomentDailyDate || '',
+            momentDailyPostLimit: app.normalizeMomentDailyPostLimit(opts.momentDailyPostLimit || 'auto'),
             pinned: !!opts.pinned,
             pinnedAt: Number(opts.pinnedAt) || 0,
             heartbeat: {
@@ -1963,6 +1972,36 @@ const app = {
         medium: '标准',
         long: '偏长'
     }[mode] || '自动判断'),
+
+    normalizeMomentDailyPostLimit: (value = 'auto') => {
+        const safe = `${value || 'auto'}`.trim();
+        return ['auto', '1', '2', '3'].includes(safe) ? safe : 'auto';
+    },
+
+    getMomentDailyPostLimitLabel: (value = 'auto') => {
+        const mode = app.normalizeMomentDailyPostLimit(value);
+        return ({
+            auto: '自动判断',
+            '1': '1条/天',
+            '2': '2条/天',
+            '3': '3条/天'
+        })[mode] || '自动判断';
+    },
+
+    getContactMomentDailyLimit: (contact, now = Date.now()) => {
+        const mode = app.normalizeMomentDailyPostLimit(contact?.momentDailyPostLimit || 'auto');
+        if (mode !== 'auto') return Number(mode);
+        const recentUserMsgCount = (contact?.messages || []).filter(msg => {
+            if (msg.sender !== 'user') return false;
+            const ts = Number(msg.time || 0);
+            if (!ts) return false;
+            return now - ts <= 24 * 60 * 60 * 1000;
+        }).length;
+        if (recentUserMsgCount >= 20) return 3;
+        if (recentUserMsgCount >= 8) return 2;
+        if (Number(contact?.temperature || 0) >= 0.9) return 2;
+        return 1;
+    },
 
     getReplySentenceLimit: (contact, scene = 'chat') => {
         if (scene !== 'chat') return 2;
@@ -2246,7 +2285,19 @@ const app = {
         return changed;
     },
 
-    getNextAutoMomentDelayMs: () => app.randomInt(AUTO_MOMENT_MIN_DELAY_MS, AUTO_MOMENT_MAX_DELAY_MS),
+    getAutoMomentMinGapMs: (contact, now = Date.now()) => {
+        const limit = app.getContactMomentDailyLimit(contact, now);
+        if (limit >= 3) return 2.5 * 60 * 60 * 1000;
+        if (limit >= 2) return 5 * 60 * 60 * 1000;
+        return AUTO_MOMENT_MIN_GAP_MS;
+    },
+
+    getNextAutoMomentDelayMs: (contact, now = Date.now()) => {
+        const limit = app.getContactMomentDailyLimit(contact, now);
+        if (limit >= 3) return app.randomInt(2 * 60 * 60 * 1000, 8 * 60 * 60 * 1000);
+        if (limit >= 2) return app.randomInt(4 * 60 * 60 * 1000, 14 * 60 * 60 * 1000);
+        return app.randomInt(AUTO_MOMENT_MIN_DELAY_MS, AUTO_MOMENT_MAX_DELAY_MS);
+    },
 
     refreshAutoMomentQuota: (contact, now = Date.now()) => {
         if (!contact) return;
@@ -2260,22 +2311,25 @@ const app = {
     ensureAutoMomentSchedule: (contact, now = Date.now()) => {
         if (!contact) return;
         app.refreshAutoMomentQuota(contact, now);
+        const minGapMs = app.getAutoMomentMinGapMs(contact, now);
         if (!Number.isFinite(contact.nextAutoMomentAt) || contact.nextAutoMomentAt <= 0) {
             const base = contact.lastAutoMomentAt && contact.lastAutoMomentAt > now - 24 * 60 * 60 * 1000
                 ? contact.lastAutoMomentAt
                 : now;
-            contact.nextAutoMomentAt = base + app.getNextAutoMomentDelayMs();
+            contact.nextAutoMomentAt = base + app.getNextAutoMomentDelayMs(contact, now);
         }
-        if (contact.lastAutoMomentAt && contact.nextAutoMomentAt < contact.lastAutoMomentAt + AUTO_MOMENT_MIN_GAP_MS) {
-            contact.nextAutoMomentAt = contact.lastAutoMomentAt + app.getNextAutoMomentDelayMs();
+        if (contact.lastAutoMomentAt && contact.nextAutoMomentAt < contact.lastAutoMomentAt + minGapMs) {
+            contact.nextAutoMomentAt = contact.lastAutoMomentAt + app.getNextAutoMomentDelayMs(contact, now);
         }
     },
 
     canAutoPostMoment: (contact, now = Date.now()) => {
         if (!contact) return false;
         app.ensureAutoMomentSchedule(contact, now);
-        if ((contact.autoMomentDailyCount || 0) >= AUTO_MOMENT_MAX_PER_DAY) return false;
-        if (contact.lastAutoMomentAt && now - contact.lastAutoMomentAt < AUTO_MOMENT_MIN_GAP_MS) return false;
+        const limit = app.getContactMomentDailyLimit(contact, now);
+        const minGapMs = app.getAutoMomentMinGapMs(contact, now);
+        if ((contact.autoMomentDailyCount || 0) >= limit) return false;
+        if (contact.lastAutoMomentAt && now - contact.lastAutoMomentAt < minGapMs) return false;
         return now >= (contact.nextAutoMomentAt || 0);
     },
 
@@ -2286,14 +2340,16 @@ const app = {
         if (countsTowardDaily) {
             contact.autoMomentDailyCount = (contact.autoMomentDailyCount || 0) + 1;
         }
-        contact.nextAutoMomentAt = now + app.getNextAutoMomentDelayMs();
+        contact.nextAutoMomentAt = now + app.getNextAutoMomentDelayMs(contact, now);
     },
 
     shouldDailyShareAlsoPostMoment: (contact, now = Date.now()) => {
         if (!contact) return false;
         app.ensureAutoMomentSchedule(contact, now);
-        if ((contact.autoMomentDailyCount || 0) >= AUTO_MOMENT_MAX_PER_DAY) return false;
-        if (contact.lastAutoMomentAt && now - contact.lastAutoMomentAt < AUTO_MOMENT_MIN_GAP_MS) return false;
+        const limit = app.getContactMomentDailyLimit(contact, now);
+        const minGapMs = app.getAutoMomentMinGapMs(contact, now);
+        if ((contact.autoMomentDailyCount || 0) >= limit) return false;
+        if (contact.lastAutoMomentAt && now - contact.lastAutoMomentAt < minGapMs) return false;
         return Math.random() < 0.45;
     },
 
@@ -4676,7 +4732,7 @@ const app = {
                 </div>
                 <div style="flex:1;text-align:left;">
                     <div style="font-weight:600;color:#222;">${contact.name}</div>
-                    <div style="font-size:12px;color:#999;margin-top:3px;">温度 ${Number(contact.temperature).toFixed(1)} · ${app.getReplyLengthLabel(contact.replyLength)} · 世界书${(contact.mountedWorldBookIds || []).length}本${contact.pinned ? ' · 已置顶' : ''} · 点击修改人设</div>
+                    <div style="font-size:12px;color:#999;margin-top:3px;">温度 ${Number(contact.temperature).toFixed(1)} · ${app.getReplyLengthLabel(contact.replyLength)} · 朋友圈${app.getMomentDailyPostLimitLabel(contact.momentDailyPostLimit)} · 世界书${(contact.mountedWorldBookIds || []).length}本${contact.pinned ? ' · 已置顶' : ''} · 点击修改人设</div>
                 </div>
                 <div style="color:#ccc;font-size:18px;">›</div>
             </div>
@@ -4767,6 +4823,14 @@ const app = {
                     <option value="on" ${contact.proactiveChat?.enabled ? 'selected' : ''}>开启</option>
                 </select>
                 <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">开启后，TA 会主动找你聊天。</div>
+                <label>朋友圈频率（按天）</label>
+                <select id="p-moment-limit" style="margin-bottom:10px;">
+                    <option value="auto" ${app.normalizeMomentDailyPostLimit(contact.momentDailyPostLimit) === 'auto' ? 'selected' : ''}>自动判断</option>
+                    <option value="1" ${app.normalizeMomentDailyPostLimit(contact.momentDailyPostLimit) === '1' ? 'selected' : ''}>1条/天</option>
+                    <option value="2" ${app.normalizeMomentDailyPostLimit(contact.momentDailyPostLimit) === '2' ? 'selected' : ''}>2条/天</option>
+                    <option value="3" ${app.normalizeMomentDailyPostLimit(contact.momentDailyPostLimit) === '3' ? 'selected' : ''}>3条/天</option>
+                </select>
+                <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">设置 TA 每天最多发几条朋友圈。自动判断会根据互动活跃度动态调节。</div>
                 <label>人设 Prompt</label>
                 <div style="margin-bottom:5px">${templateHtml}</div>
                 <textarea id="p-prompt" rows="4">${contact.prompt}</textarea>
@@ -4791,6 +4855,7 @@ const app = {
             };
             if (contact.proactiveChat.enabled) app.ensureProactiveChatSchedule(contact, Date.now(), true);
             else contact.proactiveChat.nextSendAt = 0;
+            contact.momentDailyPostLimit = app.normalizeMomentDailyPostLimit(document.getElementById('p-moment-limit').value || contact.momentDailyPostLimit || 'auto');
             contact.userPersona = (document.getElementById('p-user-persona').value || '').trim();
             contact.mountedWorldBookIds = Array.from(document.querySelectorAll('input[name="p-worldbook-mount"]:checked')).map(input => input.value);
             contact.prompt = document.getElementById('p-prompt').value || contact.prompt;
@@ -4820,6 +4885,7 @@ const app = {
         document.getElementById('new-contact-signature').value = '';
         document.getElementById('new-contact-user-persona').value = '';
         document.getElementById('new-contact-proactive-enabled').value = 'off';
+        document.getElementById('new-contact-moment-limit').value = 'auto';
         document.getElementById('new-contact-prompt').value = DEFAULT_PROMPT;
         document.getElementById('new-contact-preview').src = 'https://ui-avatars.com/api/?name=New&background=random&color=fff';
         document.getElementById('add-contact-overlay').classList.add('active');
@@ -4832,12 +4898,13 @@ const app = {
         const signature = document.getElementById('new-contact-signature').value || '今天也想认真和你说话。';
         const userPersona = (document.getElementById('new-contact-user-persona').value || '').trim();
         const prompt = document.getElementById('new-contact-prompt').value || DEFAULT_PROMPT;
+        const momentDailyPostLimit = app.normalizeMomentDailyPostLimit(document.getElementById('new-contact-moment-limit').value || 'auto');
         const proactiveChat = {
             enabled: document.getElementById('new-contact-proactive-enabled').value === 'on',
             lastSentDate: '',
             nextSendAt: 0
         };
-        const contact = app.createContact({ name, temperature, replyLength, signature, userPersona, prompt, proactiveChat });
+        const contact = app.createContact({ name, temperature, replyLength, signature, userPersona, prompt, proactiveChat, momentDailyPostLimit });
         if (app.tempNewContactAvatar) contact.avatar = app.tempNewContactAvatar;
         if (contact.proactiveChat.enabled) app.ensureProactiveChatSchedule(contact, Date.now(), true);
         state.contacts.unshift(contact);
