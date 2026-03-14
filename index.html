@@ -889,6 +889,12 @@
                     <span class="settings-value">性格/头像</span>
                     <span class="arrow-right">›</span>
                 </div>
+                <div class="settings-cell" onclick="app.openWorldBookManager()">
+                    <span class="settings-icon">📚</span>
+                    <span class="settings-label">世界书库</span>
+                    <span class="settings-value" id="profile-worldbook-count">0 本</span>
+                    <span class="arrow-right">›</span>
+                </div>
             </div>
 
             <div class="settings-group">
@@ -1035,10 +1041,10 @@
                     <span class="settings-value">关系/偏好</span>
                     <span class="arrow-right">›</span>
                 </div>
-                <div class="settings-cell" onclick="app.openWorldBookManager()">
+                <div class="settings-cell" onclick="app.openContactWorldBookMountPicker()">
                     <span class="settings-icon">📚</span>
-                    <span class="settings-label">世界书</span>
-                    <span class="settings-value" id="contact-detail-worldbook-count">0 条</span>
+                    <span class="settings-label">挂载世界书</span>
+                    <span class="settings-value" id="contact-detail-worldbook-count">未挂载</span>
                     <span class="arrow-right">›</span>
                 </div>
             </div>
@@ -1362,7 +1368,7 @@
     <input type="file" id="avatar-upload" hidden accept="image/*" onchange="app.uploadAvatar(this, 'user')">
     <input type="file" id="ai-avatar-upload" hidden accept="image/*" onchange="app.uploadAvatar(this, 'ai')">
     <input type="file" id="character-card-upload" hidden accept=".png,image/png" onchange="app.handleCharacterCardUpload(this)">
-    <input type="file" id="worldbook-upload" hidden accept=".json,application/json" onchange="app.handleWorldBookUpload(this)">
+    <input type="file" id="worldbook-upload" hidden multiple accept=".json,application/json" onchange="app.handleWorldBookUpload(this)">
 
 </div>
 
@@ -1442,10 +1448,13 @@ const LOCAL_DB_NAME = 'nn_phone_local_db';
 const LOCAL_DB_VERSION = 1;
 const LOCAL_DB_STORE = 'kv';
 const LOCAL_STATE_KEY = 'nn_data_v2';
+const DEFAULT_WORLD_BOOK_FOLDER_ID = 'wbf-default';
 
 // State
 const state = {
     contacts: [],
+    worldBooks: [],
+    worldBookFolders: [],
     userMoments: [],
     currentChatId: null,
     typing: false,
@@ -1542,6 +1551,12 @@ const utils = {
         state.currentChatId = parsed.currentChatId || null;
         state.wallet = parsed.wallet || state.wallet;
         state.userMoments = Array.isArray(parsed.userMoments) ? parsed.userMoments : [];
+        state.worldBooks = Array.isArray(parsed.worldBooks)
+            ? parsed.worldBooks
+            : (parsed.worldBooks && typeof parsed.worldBooks === 'object' ? Object.values(parsed.worldBooks) : []);
+        state.worldBookFolders = Array.isArray(parsed.worldBookFolders)
+            ? parsed.worldBookFolders
+            : (parsed.worldBookFolders && typeof parsed.worldBookFolders === 'object' ? Object.values(parsed.worldBookFolders) : []);
         state.settings = parsed.settings || state.settings;
         if (parsed.contacts && Array.isArray(parsed.contacts)) {
             state.contacts = parsed.contacts;
@@ -1652,7 +1667,10 @@ const app = {
         document.getElementById('send-btn').addEventListener('click', app.sendMessage);
         document.getElementById('receive-btn').addEventListener('click', app.receivePendingMessages);
         document.getElementById('msg-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); app.sendMessage(); }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                // Enter 改为仅换行，不再触发发送
+                return;
+            }
         });
         document.getElementById('nav-left').onclick = app.goBack;
         document.getElementById('nav-right').onclick = app.showAddContact;
@@ -1765,6 +1783,11 @@ const app = {
             password: /^\d{6}$/.test(`${state.wallet?.password || ''}`) ? `${state.wallet.password}` : '258369'
         };
         state.contacts = state.contacts.map(c => app.normalizeContact(c));
+        app.ensureWorldBookFolders();
+        app.ensureWorldBookLibrary();
+        const migratedLegacyWorldBook = app.migrateLegacyContactWorldBooks();
+        app.cleanupMountedWorldBooks();
+        if (migratedLegacyWorldBook) utils.save();
         state.userMoments = (state.userMoments || []).map((m, idx) => ({
             ...m,
             id: m.id || utils.id('um'),
@@ -1817,6 +1840,9 @@ const app = {
                 state: contact.heartbeat?.state || '平稳'
             },
             importedCard: contact.importedCard || null,
+            mountedWorldBookIds: Array.isArray(contact.mountedWorldBookIds)
+                ? Array.from(new Set(contact.mountedWorldBookIds.map(id => `${id || ''}`.trim()).filter(Boolean)))
+                : [],
             proactiveChat: {
                 enabled: !!contact.proactiveChat?.enabled,
                 lastSentDate: contact.proactiveChat?.lastSentDate || '',
@@ -1889,6 +1915,9 @@ const app = {
                 state: opts.heartbeat?.state || '平稳'
             },
             importedCard: opts.importedCard || null,
+            mountedWorldBookIds: Array.isArray(opts.mountedWorldBookIds)
+                ? Array.from(new Set(opts.mountedWorldBookIds.map(id => `${id || ''}`.trim()).filter(Boolean)))
+                : [],
             proactiveChat: {
                 enabled: !!opts.proactiveChat?.enabled,
                 lastSentDate: opts.proactiveChat?.lastSentDate || '',
@@ -2835,7 +2864,10 @@ const app = {
             }
             const structured = await app.composeProactiveChatContent(contact);
             app.applyHeartbeatArousal(contact, structured.arousal);
-            app.appendMessageToContact(contact, 'ai', structured.content, 'text');
+            const segments = Array.isArray(structured.segments) && structured.segments.length
+                ? structured.segments
+                : [structured.content];
+            await app.emitAiReplySegments(contact, segments);
             contact.proactiveChat.lastSentDate = todayKey;
             app.ensureProactiveChatSchedule(contact, Date.now(), true);
             utils.save();
@@ -3031,6 +3063,8 @@ const app = {
         if (giftCountEl) giftCountEl.innerText = `${received.length} 件`;
         const giftSummaryEl = document.getElementById('profile-gift-summary');
         if (giftSummaryEl) giftSummaryEl.innerText = received.length ? `最近 ${received.length} 件` : '还没有收到礼物';
+        const worldBookCountEl = document.getElementById('profile-worldbook-count');
+        if (worldBookCountEl) worldBookCountEl.innerText = `${(state.worldBooks || []).length} 本`;
         const cover = state.user.momentCover || DEFAULT_MOMENT_COVER;
         const header = document.getElementById('moments-header');
         if (header) header.style.backgroundImage = `url('${cover}')`;
@@ -3156,7 +3190,8 @@ const app = {
         document.getElementById('contact-detail-temp').innerText = Number(contact.temperature).toFixed(1);
         document.getElementById('contact-detail-moments-count').innerText = `${contact.moments.length}`;
         document.getElementById('contact-detail-gifts-count').innerText = `${(contact.giftHistory || []).length}`;
-        document.getElementById('contact-detail-worldbook-count').innerText = `${app.getContactWorldBook(contact).length} 条`;
+        const mountedBooks = app.getMountedWorldBooks(contact);
+        document.getElementById('contact-detail-worldbook-count').innerText = mountedBooks.length ? `${mountedBooks.length} 本` : '未挂载';
 
         const latestMoment = app.getLatestContactMoment(contact);
         const preview = document.getElementById('contact-moment-preview');
@@ -3670,8 +3705,9 @@ const app = {
         const worldMatches = app.matchWorldBookEntries(contact);
         if (worldMatches.length) {
             const worldText = worldMatches.map(entry => {
+                const bookPrefix = entry.__worldBookName ? `${entry.__worldBookName} / ` : '';
                 const title = entry.name || (entry.key || []).join(' / ') || `词条${entry.uid || ''}`;
-                return `【${title}】\n${entry.content}`;
+                return `【${bookPrefix}${title}】\n${entry.content}`;
             }).join('\n');
             systemContent += `\n\n[世界书规则]\n${worldText}`;
         }
@@ -3790,23 +3826,48 @@ const app = {
         return text;
     },
 
+    splitStructuredReplySegments: (rawContent = '') => {
+        const markerRegex = /(?:【分段】|\[\[NEXT\]\]|\[NEXT\])/g;
+        const source = `${rawContent || ''}`.trim();
+        if (!source) return [];
+        const parts = source.split(markerRegex).map(item => `${item || ''}`.trim()).filter(Boolean);
+        const baseParts = parts.length ? parts : [source];
+        const cleaned = baseParts
+            .map(item => app.cleanAiText(item, 0, 0))
+            .map(item => `${item || ''}`.trim())
+            .filter(Boolean);
+        return cleaned.length ? cleaned : ['嗯，我在。'];
+    },
+
+    emitAiReplySegments: async (contact, segments = []) => {
+        const safeSegments = (Array.isArray(segments) ? segments : [])
+            .map(item => `${item || ''}`.trim())
+            .filter(Boolean);
+        if (!contact || !safeSegments.length) return;
+        for (let i = 0; i < safeSegments.length; i += 1) {
+            app.addMessage('ai', safeSegments[i], 'text', contact);
+            if (i < safeSegments.length - 1) {
+                await app.sleep(app.randomInt(420, 980));
+            }
+        }
+    },
+
     getStructuredChatInstruction: () => ({
         role: 'system',
-        content: '请以 JSON 格式回复，包含 content（回复文本）和 arousal（情绪兴奋度 0-100）。只输出 JSON，不要代码块、不要额外解释。content 必须是自然中文口语回复；arousal 必须是 0 到 100 的整数，表示你此刻对这段对话的情绪兴奋度。'
+        content: '请以 JSON 格式回复，包含 content（回复文本）和 arousal（情绪兴奋度 0-100）。只输出 JSON，不要代码块、不要额外解释。content 必须是自然中文口语回复；arousal 必须是 0 到 100 的整数，表示你此刻对这段对话的情绪兴奋度。你可以按需分段：如果你判断需要分多句连续发送，请在 content 内用“【分段】”连接各段（示例：第一句【分段】第二句）。如果不需要分段，就只写普通单段内容，千万不要为了分段而分段。'
     }),
 
     parseStructuredChatReply: (rawText = '', contact, fallbackText = '') => {
         const normalized = app.normalizeModelReplyInput(rawText);
         const parsed = app.extractStructuredReplyPayload(rawText);
-        const content = app.cleanAiText(
-            (typeof parsed?.content === 'string' && parsed.content.trim() ? parsed.content : '') || normalized || fallbackText || '嗯，我在。',
-            0,
-            0
-        );
+        const rawCandidate = (typeof parsed?.content === 'string' && parsed.content.trim() ? parsed.content : '') || normalized || fallbackText || '嗯，我在。';
+        const segments = app.splitStructuredReplySegments(rawCandidate);
+        const content = segments.join('');
         const fallbackArousal = app.analyzeHeartbeatReaction(contact, fallbackText || normalized).intensity;
         const arousal = Math.max(0, Math.min(100, Math.round(Number(parsed?.arousal))));
         return {
             content,
+            segments,
             arousal: Number.isFinite(arousal) ? arousal : fallbackArousal
         };
     },
@@ -3998,7 +4059,8 @@ const app = {
         btn.disabled = pendingCount <= 0 || !!state.typing;
     },
 
-    sendMessage: async () => {
+    sendMessage: async (options = {}) => {
+        const autoReceive = !!(options && typeof options === 'object' && options.autoReceive);
         const contact = app.getActiveContact();
         if (!contact) {
             app.showToast('请先添加联系人', 'warning', '还没有聊天对象');
@@ -4017,6 +4079,7 @@ const app = {
             if (text) app.bumpHeartbeatByMessage(contact, text);
             app.clearPendingChatImage();
             app.updateReceiveButton(contact);
+            if (autoReceive) await app.receivePendingMessages();
             return;
         }
 
@@ -4026,6 +4089,7 @@ const app = {
         });
         app.bumpHeartbeatByMessage(contact, text);
         app.updateReceiveButton(contact);
+        if (autoReceive) await app.receivePendingMessages();
     },
 
     receivePendingMessages: async () => {
@@ -4103,14 +4167,19 @@ const app = {
             const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 800, scene: 'chat-receive-batch' });
             if (data.choices?.length) {
                 const structured = app.parseStructuredChatReply(data.choices[0].message.content, contact, combinedUserText);
-                const reply = latestImageMsg ? app.ensureImageReplyQuality(structured.content, featureSummary) : structured.content;
+                let replySegments = Array.isArray(structured.segments) && structured.segments.length
+                    ? [...structured.segments]
+                    : [structured.content];
+                if (latestImageMsg && replySegments.length) {
+                    replySegments[0] = app.ensureImageReplyQuality(replySegments[0], featureSummary);
+                }
                 app.applyHeartbeatArousal(contact, structured.arousal);
                 const receivedAt = Date.now();
                 pendingMessages.forEach(msg => {
                     msg.awaitingReceive = false;
                     msg.receivedAt = receivedAt;
                 });
-                app.addMessage('ai', reply, 'text', contact);
+                await app.emitAiReplySegments(contact, replySegments);
                 app.processMemory(contact);
                 app.maybeSendGiftAfterUserRequest(contact, combinedUserText);
                 utils.save();
@@ -4140,7 +4209,9 @@ const app = {
         app.openContactDetail();
     },
 
+    worldBookEditingId: null,
     worldBookEditingContactId: null,
+    worldBookFolderFilterId: 'all',
 
     buildMemoryEntry: (content, type = 'fact', source = 'conversation', date = '') => {
         const value = `${content || ''}`.trim();
@@ -4187,9 +4258,194 @@ const app = {
         return contact.importedCard;
     },
 
-    getContactWorldBook: (contact) => {
-        const importedCard = app.ensureContactImportedCard(contact);
-        return importedCard?.worldBook || [];
+    normalizeWorldBookFolderItem: (folder, index = 0) => ({
+        id: `${folder?.id || (index === 0 ? DEFAULT_WORLD_BOOK_FOLDER_ID : utils.id('wbf'))}`,
+        name: `${folder?.name || (index === 0 ? '默认文件夹' : `文件夹${index + 1}`)}`.trim() || `文件夹${index + 1}`,
+        createdAt: Number(folder?.createdAt) || Date.now(),
+        updatedAt: Number(folder?.updatedAt) || Date.now()
+    }),
+
+    ensureWorldBookFolders: () => {
+        const source = Array.isArray(state.worldBookFolders)
+            ? state.worldBookFolders
+            : (state.worldBookFolders && typeof state.worldBookFolders === 'object' ? Object.values(state.worldBookFolders) : []);
+        const normalized = source
+            .map((folder, index) => app.normalizeWorldBookFolderItem(folder, index))
+            .filter(folder => folder.name);
+        if (!normalized.some(folder => folder.id === DEFAULT_WORLD_BOOK_FOLDER_ID)) {
+            normalized.unshift({
+                id: DEFAULT_WORLD_BOOK_FOLDER_ID,
+                name: '默认文件夹',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            });
+        }
+        const dedup = [];
+        const seen = new Set();
+        normalized.forEach(folder => {
+            if (seen.has(folder.id)) return;
+            seen.add(folder.id);
+            dedup.push(folder);
+        });
+        state.worldBookFolders = dedup;
+        if (!app.worldBookFolderFilterId || (app.worldBookFolderFilterId !== 'all' && !dedup.some(folder => folder.id === app.worldBookFolderFilterId))) {
+            app.worldBookFolderFilterId = 'all';
+        }
+    },
+
+    resolveWorldBookFolderId: (folderId = '') => {
+        app.ensureWorldBookFolders();
+        const safeId = `${folderId || ''}`.trim();
+        if (!safeId) return DEFAULT_WORLD_BOOK_FOLDER_ID;
+        return (state.worldBookFolders || []).some(folder => folder.id === safeId) ? safeId : DEFAULT_WORLD_BOOK_FOLDER_ID;
+    },
+
+    getWorldBookFolderById: (folderId) => (state.worldBookFolders || []).find(folder => folder.id === folderId) || null,
+
+    getWorldBookFolderName: (folderId) => app.getWorldBookFolderById(app.resolveWorldBookFolderId(folderId))?.name || '默认文件夹',
+
+    getWorldBookFolderOptionsHtml: (selectedId = '') => {
+        const safeSelectedId = app.resolveWorldBookFolderId(selectedId);
+        return (state.worldBookFolders || []).map(folder => `
+            <option value="${folder.id}" ${folder.id === safeSelectedId ? 'selected' : ''}>${folder.name}</option>
+        `).join('');
+    },
+
+    getWorldBookCountInFolder: (folderId) => (state.worldBooks || []).filter(book => app.resolveWorldBookFolderId(book.folderId) === folderId).length,
+
+    createWorldBookFolder: (name = '新的文件夹') => {
+        app.ensureWorldBookFolders();
+        const folderName = `${name || ''}`.trim() || `文件夹${(state.worldBookFolders || []).length}`;
+        const exists = (state.worldBookFolders || []).some(folder => folder.name === folderName);
+        if (exists) return null;
+        const now = Date.now();
+        const folder = {
+            id: utils.id('wbf'),
+            name: folderName,
+            createdAt: now,
+            updatedAt: now
+        };
+        state.worldBookFolders.push(folder);
+        return folder;
+    },
+
+    setWorldBookFolderFilter: (folderId = 'all') => {
+        if (folderId !== 'all') {
+            const safeFolderId = app.resolveWorldBookFolderId(folderId);
+            if (!(state.worldBookFolders || []).some(folder => folder.id === safeFolderId)) {
+                app.worldBookFolderFilterId = 'all';
+            } else {
+                app.worldBookFolderFilterId = safeFolderId;
+            }
+        } else {
+            app.worldBookFolderFilterId = 'all';
+        }
+        app.openWorldBookManager();
+    },
+
+    normalizeWorldBookLibraryItem: (book, index = 0) => {
+        const safeEntries = app.normalizeWorldBookEntries(book?.entries || book?.worldBook || []);
+        return {
+            id: `${book?.id || utils.id('wb')}`,
+            name: `${book?.name || book?.title || `世界书${index + 1}`}`.trim() || `世界书${index + 1}`,
+            note: `${book?.note || book?.description || ''}`.trim(),
+            folderId: app.resolveWorldBookFolderId(book?.folderId),
+            entries: safeEntries,
+            createdAt: Number(book?.createdAt) || Date.now(),
+            updatedAt: Number(book?.updatedAt) || Date.now(),
+            source: `${book?.source || 'manual'}`.trim() || 'manual'
+        };
+    },
+
+    ensureWorldBookLibrary: () => {
+        app.ensureWorldBookFolders();
+        const source = Array.isArray(state.worldBooks)
+            ? state.worldBooks
+            : (state.worldBooks && typeof state.worldBooks === 'object' ? Object.values(state.worldBooks) : []);
+        state.worldBooks = source
+            .map((book, index) => app.normalizeWorldBookLibraryItem(book, index))
+            .filter(book => book.entries.length || book.note || book.name);
+    },
+
+    getWorldBookById: (worldBookId) => state.worldBooks.find(book => book.id === worldBookId),
+
+    getMountedWorldBooks: (contact) => {
+        if (!contact) return [];
+        const mountedIds = Array.isArray(contact.mountedWorldBookIds) ? contact.mountedWorldBookIds : [];
+        return mountedIds.map(id => app.getWorldBookById(id)).filter(Boolean);
+    },
+
+    getContactWorldBook: (contact) => app.getMountedWorldBooks(contact),
+
+    getMountedWorldBookEntries: (contact) => {
+        const books = app.getMountedWorldBooks(contact);
+        return books.flatMap(book => (book.entries || []).map(entry => ({
+            ...entry,
+            __worldBookId: book.id,
+            __worldBookName: book.name
+        })));
+    },
+
+    countWorldBookMountedContacts: (worldBookId) => state.contacts.filter(contact => (contact.mountedWorldBookIds || []).includes(worldBookId)).length,
+
+    cleanupMountedWorldBooks: () => {
+        const valid = new Set((state.worldBooks || []).map(book => book.id));
+        state.contacts.forEach(contact => {
+            const current = Array.isArray(contact.mountedWorldBookIds) ? contact.mountedWorldBookIds : [];
+            contact.mountedWorldBookIds = Array.from(new Set(current.filter(id => valid.has(id))));
+        });
+    },
+
+    createWorldBook: (name = '新的世界书', entries = [], note = '', source = 'manual', folderId = '') => {
+        app.ensureWorldBookFolders();
+        const normalizedEntries = app.normalizeWorldBookEntries(entries);
+        const worldBook = {
+            id: utils.id('wb'),
+            name: `${name || '新的世界书'}`.trim() || '新的世界书',
+            note: `${note || ''}`.trim(),
+            folderId: app.resolveWorldBookFolderId(folderId),
+            entries: normalizedEntries,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            source
+        };
+        state.worldBooks.unshift(worldBook);
+        return worldBook;
+    },
+
+    migrateLegacyContactWorldBooks: () => {
+        const now = Date.now();
+        let changed = false;
+        state.contacts.forEach(contact => {
+            const importedCard = app.ensureContactImportedCard(contact);
+            const legacyEntries = app.normalizeWorldBookEntries(importedCard.worldBook || []);
+            if (!legacyEntries.length) return;
+            let worldBook = (state.worldBooks || []).find(item => item.source === 'legacy-contact' && item.note === `legacy:${contact.id}`);
+            if (!worldBook) {
+                worldBook = {
+                    id: utils.id('wb'),
+                    name: `${contact.name} 的旧世界书`,
+                    note: `legacy:${contact.id}`,
+                    folderId: DEFAULT_WORLD_BOOK_FOLDER_ID,
+                    entries: legacyEntries,
+                    createdAt: now,
+                    updatedAt: now,
+                    source: 'legacy-contact'
+                };
+                state.worldBooks.push(worldBook);
+                changed = true;
+            } else {
+                worldBook.entries = legacyEntries;
+                worldBook.updatedAt = now;
+                changed = true;
+            }
+            const mounted = Array.isArray(contact.mountedWorldBookIds) ? contact.mountedWorldBookIds : [];
+            if (!mounted.includes(worldBook.id)) mounted.push(worldBook.id);
+            contact.mountedWorldBookIds = Array.from(new Set(mounted));
+            changed = true;
+            importedCard.worldBook = [];
+        });
+        return changed;
     },
 
     dedupeMemoryEntries: (items = [], limit = 30) => {
@@ -4420,7 +4676,7 @@ const app = {
                 </div>
                 <div style="flex:1;text-align:left;">
                     <div style="font-weight:600;color:#222;">${contact.name}</div>
-                    <div style="font-size:12px;color:#999;margin-top:3px;">温度 ${Number(contact.temperature).toFixed(1)} · ${app.getReplyLengthLabel(contact.replyLength)}${contact.pinned ? ' · 已置顶' : ''} · 点击修改人设</div>
+                    <div style="font-size:12px;color:#999;margin-top:3px;">温度 ${Number(contact.temperature).toFixed(1)} · ${app.getReplyLengthLabel(contact.replyLength)} · 世界书${(contact.mountedWorldBookIds || []).length}本${contact.pinned ? ' · 已置顶' : ''} · 点击修改人设</div>
                 </div>
                 <div style="color:#ccc;font-size:18px;">›</div>
             </div>
@@ -4458,6 +4714,18 @@ const app = {
             { name: '贴心基友', prompt: '你是用户的死党。说话随意，可以互怼，讲义气。' }
         ];
         const templateHtml = templates.map(t => `<span class="template-tag" onclick="document.getElementById('p-prompt').value='${t.prompt}'">${t.name}</span>`).join('');
+        const mountedBookSet = new Set((contact.mountedWorldBookIds || []).map(id => `${id}`));
+        const worldBookMountHtml = (state.worldBooks || []).length
+            ? state.worldBooks.map(book => `
+                <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+                    <input type="checkbox" name="p-worldbook-mount" value="${book.id}" ${mountedBookSet.has(book.id) ? 'checked' : ''} style="margin-top:3px;">
+                    <span style="flex:1;">
+                        <span style="display:block;color:#1f2937;font-size:13px;font-weight:600;">${book.name}</span>
+                        <span style="display:block;color:#9ca3af;font-size:12px;margin-top:2px;">📁 ${app.getWorldBookFolderName(book.folderId)} · ${(book.entries || []).length} 条词条</span>
+                    </span>
+                </label>
+            `).join('')
+            : '<div style="font-size:12px;color:#9ca3af;padding:8px 0;">还没有世界书，先到“我 > 世界书库”里新增或导入。</div>';
         const html = `
             <div style="text-align:left">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;cursor:pointer" onclick="document.getElementById('ai-avatar-upload').click()">
@@ -4484,6 +4752,9 @@ const app = {
                 <label>你在TA面前的人设</label>
                 <textarea id="p-user-persona" rows="3" placeholder="例如：我是TA的恋人，表面嘴硬，实际很依赖TA。">${contact.userPersona || ''}</textarea>
                 <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">只对这个联系人生效。和不同人物聊天时，可以是完全不同的你。</div>
+                <label>挂载世界书（可多选）</label>
+                <div id="p-worldbook-mounts" style="border:1px solid #ececec;border-radius:10px;padding:0 10px;max-height:168px;overflow:auto;margin-bottom:8px;">${worldBookMountHtml}</div>
+                <div style="font-size:12px;color:#999;line-height:1.45;margin:-2px 0 10px;">不勾选则代表这个人物不挂载世界书。</div>
                 <label>聊天列表置顶</label>
                 <select id="p-pin" style="margin-bottom:10px;">
                     <option value="off" ${contact.pinned ? '' : 'selected'}>不置顶</option>
@@ -4521,10 +4792,12 @@ const app = {
             if (contact.proactiveChat.enabled) app.ensureProactiveChatSchedule(contact, Date.now(), true);
             else contact.proactiveChat.nextSendAt = 0;
             contact.userPersona = (document.getElementById('p-user-persona').value || '').trim();
+            contact.mountedWorldBookIds = Array.from(document.querySelectorAll('input[name="p-worldbook-mount"]:checked')).map(input => input.value);
             contact.prompt = document.getElementById('p-prompt').value || contact.prompt;
             utils.save();
             app.renderChatList();
             app.renderMoments();
+            app.updateProfileUI();
             if (state.currentChatId === contact.id) app.renderChatHeader(contact);
             if (app.contactDetailContactId === contact.id) {
                 if (app.contactDetailOpen) app.openContactDetail(contact.id);
@@ -4861,30 +5134,30 @@ const app = {
         }).filter(item => item.content);
     },
 
-    getNextWorldBookUid: (contact) => {
-        const list = app.getContactWorldBook(contact);
+    getNextWorldBookUid: (worldBook) => {
+        const list = Array.isArray(worldBook?.entries) ? worldBook.entries : [];
         const maxUid = list.reduce((max, entry) => Math.max(max, Number(entry?.uid) || 0), 0);
         return maxUid + 1;
     },
 
-    upsertWorldBookEntries: (contact, entries = []) => {
-        if (!contact) return;
-        const importedCard = app.ensureContactImportedCard(contact);
-        const current = Array.isArray(importedCard.worldBook) ? importedCard.worldBook : [];
+    upsertWorldBookEntries: (worldBook, entries = []) => {
+        if (!worldBook) return;
+        const current = Array.isArray(worldBook.entries) ? worldBook.entries : [];
         const nextMap = new Map(current.map(entry => [String(entry.uid || entry.id), entry]));
         entries.forEach((entry, index) => {
             const normalizedList = app.normalizeWorldBookEntries([entry]);
             const normalized = normalizedList[0];
             if (!normalized) return;
-            const fallbackUid = app.getNextWorldBookUid(contact) + index;
+            const fallbackUid = app.getNextWorldBookUid(worldBook) + index;
             normalized.uid = Number.isFinite(Number(normalized.uid)) ? Number(normalized.uid) : fallbackUid;
             normalized.id = normalized.id || `wb-${normalized.uid}`;
             nextMap.set(String(normalized.uid), normalized);
         });
-        importedCard.worldBook = [...nextMap.values()].sort((a, b) => {
+        worldBook.entries = [...nextMap.values()].sort((a, b) => {
             if ((a.order || 100) !== (b.order || 100)) return (a.order || 100) - (b.order || 100);
             return (a.uid || 0) - (b.uid || 0);
         });
+        worldBook.updatedAt = Date.now();
     },
 
     getWorldBookImportEntries: (payload) => {
@@ -4893,14 +5166,209 @@ const app = {
         return payload.entries || payload.world_book?.entries || payload.lorebook?.entries || payload.data?.entries || payload.worldBook || payload;
     },
 
-    openWorldBookManager: (contactId = null) => {
+    openContactWorldBookMountPicker: (contactId = null) => {
         const contact = app.getContact(contactId || app.contactDetailContactId || state.currentChatId);
         if (!contact) {
-            app.showToast('请先选择一个人物', 'warning', '还没有目标');
+            app.showToast('请先选择一个联系人', 'warning', '还没有目标');
             return;
         }
         app.worldBookEditingContactId = contact.id;
-        const entries = app.getContactWorldBook(contact);
+        const mountedSet = new Set((contact.mountedWorldBookIds || []).map(id => `${id}`));
+        const rows = (state.worldBooks || []).length
+            ? state.worldBooks.map(worldBook => {
+                const checked = mountedSet.has(worldBook.id) ? 'checked' : '';
+                return `
+                    <label style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #f1f1f1;cursor:pointer;">
+                        <input type="checkbox" name="mount-worldbook-item" value="${worldBook.id}" ${checked} style="margin-top:4px;">
+                        <span style="flex:1;min-width:0;">
+                            <span style="display:block;font-weight:600;color:#1f2937;">${worldBook.name}</span>
+                            <span style="display:block;font-size:12px;color:#6b7280;margin-top:4px;">📁 ${app.getWorldBookFolderName(worldBook.folderId)} · ${(worldBook.entries || []).length} 条词条${worldBook.note ? ` · ${worldBook.note}` : ''}</span>
+                        </span>
+                    </label>
+                `;
+            }).join('')
+            : '<div style="font-size:13px;color:#9ca3af;padding:12px 0;">还没有世界书，先在“我 > 世界书库”里新增或导入。</div>';
+        const html = `
+            <div style="text-align:left;">
+                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:10px;">可多选挂载。未勾选即不挂载世界书。</div>
+                <div style="max-height:340px;overflow:auto;">${rows}</div>
+                <div style="margin-top:12px;">
+                    <button class="feedback-btn secondary" style="padding:8px 12px;" onclick="app.openWorldBookManager()">去管理世界书库</button>
+                </div>
+            </div>
+        `;
+        app.showModal(`给 ${contact.name} 挂载世界书`, html);
+        document.getElementById('modal-confirm').style.display = 'block';
+        document.getElementById('modal-confirm').innerText = '保存挂载';
+        document.getElementById('modal-confirm').onclick = () => app.saveContactWorldBookMounts(contact.id);
+    },
+
+    saveContactWorldBookMounts: (contactId) => {
+        const contact = app.getContact(contactId || app.worldBookEditingContactId || state.currentChatId);
+        if (!contact) return;
+        const mountedIds = Array.from(document.querySelectorAll('input[name="mount-worldbook-item"]:checked')).map(input => input.value);
+        contact.mountedWorldBookIds = Array.from(new Set(mountedIds));
+        utils.save();
+        app.updateProfileUI();
+        if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
+            app.openContactDetail(contact.id);
+        }
+        app.closeModal();
+        app.showToast('挂载设置已保存', 'success', '保存成功');
+    },
+
+    openWorldBookManager: () => {
+        app.ensureWorldBookFolders();
+        app.ensureWorldBookLibrary();
+        const allBooks = state.worldBooks || [];
+        const activeFolderId = app.worldBookFolderFilterId === 'all'
+            ? 'all'
+            : app.resolveWorldBookFolderId(app.worldBookFolderFilterId);
+        app.worldBookFolderFilterId = activeFolderId;
+        const folders = state.worldBookFolders || [];
+        const folderTabs = [
+            `<button class="feedback-btn secondary" style="padding:6px 10px;${activeFolderId === 'all' ? 'background:#111827;color:#fff;border-color:#111827;' : ''}" onclick="app.setWorldBookFolderFilter('all')">全部 (${allBooks.length})</button>`,
+            ...folders.map(folder => `
+                <button class="feedback-btn secondary" style="padding:6px 10px;${activeFolderId === folder.id ? 'background:#111827;color:#fff;border-color:#111827;' : ''}" onclick="app.setWorldBookFolderFilter('${folder.id}')">${folder.name} (${app.getWorldBookCountInFolder(folder.id)})</button>
+            `)
+        ].join('');
+        const visibleBooks = activeFolderId === 'all'
+            ? allBooks
+            : allBooks.filter(book => app.resolveWorldBookFolderId(book.folderId) === activeFolderId);
+        const rows = visibleBooks.length
+            ? visibleBooks.map(worldBook => `
+                <div style="padding:12px 0;border-bottom:1px solid #f1f1f1;">
+                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:600;color:#1f2937;">${worldBook.name}</div>
+                            <div style="font-size:12px;color:#6b7280;margin-top:4px;">📁 ${app.getWorldBookFolderName(worldBook.folderId)} · ${(worldBook.entries || []).length} 条词条 · 已挂载 ${app.countWorldBookMountedContacts(worldBook.id)} 人${worldBook.note ? ` · ${worldBook.note}` : ''}</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+                            <button class="send-btn" style="margin:0;padding:5px 10px;font-size:12px;" onclick="app.openWorldBookEntriesManager('${worldBook.id}')">管理词条</button>
+                            <button class="feedback-btn secondary" style="padding:5px 10px;font-size:12px;" onclick="app.openWorldBookMoveFolderPrompt('${worldBook.id}')">移动文件夹</button>
+                            <button class="feedback-btn secondary" style="padding:5px 10px;font-size:12px;" onclick="app.deleteWorldBook('${worldBook.id}')">删除</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')
+            : '<div style="font-size:13px;color:#9ca3af;padding:12px 0;">这个分类下还没有世界书，先新增一本或导入 JSON 吧。</div>';
+        const html = `
+            <div style="text-align:left;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.openCreateWorldBookFolderPrompt()">新建文件夹</button>
+                    <button class="send-btn" style="margin:0;" onclick="app.openCreateWorldBookPrompt()">新增世界书</button>
+                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.triggerWorldBookImport()">导入 JSON</button>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${folderTabs}</div>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:10px;">世界书在这里集中管理；到具体人物里只做挂载选择。支持 SillyTavern 常见字段：uid、key、keysecondary、content、constant、selective、order、probability、depth。</div>
+                <div style="max-height:340px;overflow:auto;">${rows}</div>
+            </div>
+        `;
+        app.showModal('世界书库', html);
+        app.worldBookEditingId = null;
+        document.getElementById('modal-confirm').style.display = 'none';
+    },
+
+    openCreateWorldBookFolderPrompt: () => {
+        const html = `
+            <div style="text-align:left;">
+                <label>文件夹名称</label>
+                <input type="text" id="new-worldbook-folder-name" placeholder="例如：校园 / 职场 / 奇幻">
+                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-top:8px;">创建后可以把世界书移动到这个文件夹里。</div>
+            </div>
+        `;
+        app.showModal('新建世界书文件夹', html);
+        document.getElementById('modal-confirm').style.display = 'block';
+        document.getElementById('modal-confirm').innerText = '创建';
+        document.getElementById('modal-confirm').onclick = () => {
+            const folderName = (document.getElementById('new-worldbook-folder-name').value || '').trim();
+            if (!folderName) {
+                app.showToast('文件夹名称不能为空', 'warning', '还不能创建');
+                return;
+            }
+            const folder = app.createWorldBookFolder(folderName);
+            if (!folder) {
+                app.showToast('同名文件夹已存在', 'warning', '创建失败');
+                return;
+            }
+            utils.save();
+            app.worldBookFolderFilterId = folder.id;
+            app.openWorldBookManager();
+            app.showToast('文件夹已创建', 'success', '创建成功');
+        };
+    },
+
+    openCreateWorldBookPrompt: () => {
+        app.ensureWorldBookFolders();
+        const folderFromFilter = app.worldBookFolderFilterId && app.worldBookFolderFilterId !== 'all'
+            ? app.resolveWorldBookFolderId(app.worldBookFolderFilterId)
+            : DEFAULT_WORLD_BOOK_FOLDER_ID;
+        const html = `
+            <div style="text-align:left;">
+                <label>世界书名称</label>
+                <input type="text" id="new-worldbook-name" placeholder="例如：校园世界观" value="">
+                <label>存放文件夹</label>
+                <select id="new-worldbook-folder">${app.getWorldBookFolderOptionsHtml(folderFromFilter)}</select>
+                <label>备注（可空）</label>
+                <textarea id="new-worldbook-note" rows="3" placeholder="例如：用于校园恋爱线，仅包含校规与组织设定"></textarea>
+            </div>
+        `;
+        app.showModal('新增世界书', html);
+        document.getElementById('modal-confirm').style.display = 'block';
+        document.getElementById('modal-confirm').innerText = '创建';
+        document.getElementById('modal-confirm').onclick = () => {
+            const name = (document.getElementById('new-worldbook-name').value || '').trim() || `世界书${(state.worldBooks || []).length + 1}`;
+            const folderId = document.getElementById('new-worldbook-folder')?.value || DEFAULT_WORLD_BOOK_FOLDER_ID;
+            const note = (document.getElementById('new-worldbook-note').value || '').trim();
+            const worldBook = app.createWorldBook(name, [], note, 'manual', folderId);
+            utils.save();
+            app.updateProfileUI();
+            app.openWorldBookEntriesManager(worldBook.id);
+            app.showToast('世界书已创建', 'success', '创建成功');
+        };
+    },
+
+    openWorldBookMoveFolderPrompt: (worldBookId, returnToEntries = false) => {
+        const worldBook = app.getWorldBookById(worldBookId);
+        if (!worldBook) {
+            app.showToast('没有找到对应世界书', 'warning', '已失效');
+            return;
+        }
+        app.ensureWorldBookFolders();
+        const html = `
+            <div style="text-align:left;">
+                <label>移动到文件夹</label>
+                <select id="worldbook-move-folder">${app.getWorldBookFolderOptionsHtml(worldBook.folderId)}</select>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-top:8px;">当前世界书：${worldBook.name}</div>
+            </div>
+        `;
+        app.showModal('移动世界书', html);
+        document.getElementById('modal-confirm').style.display = 'block';
+        document.getElementById('modal-confirm').innerText = '保存';
+        document.getElementById('modal-confirm').onclick = () => {
+            const folderId = document.getElementById('worldbook-move-folder')?.value || DEFAULT_WORLD_BOOK_FOLDER_ID;
+            worldBook.folderId = app.resolveWorldBookFolderId(folderId);
+            worldBook.updatedAt = Date.now();
+            utils.save();
+            app.updateProfileUI();
+            if (returnToEntries) {
+                app.openWorldBookEntriesManager(worldBook.id);
+            } else {
+                app.worldBookFolderFilterId = worldBook.folderId;
+                app.openWorldBookManager();
+            }
+            app.showToast('世界书已移动', 'success', '保存成功');
+        };
+    },
+
+    openWorldBookEntriesManager: (worldBookId) => {
+        const worldBook = app.getWorldBookById(worldBookId);
+        if (!worldBook) {
+            app.showToast('没有找到对应世界书', 'warning', '已失效');
+            return;
+        }
+        app.worldBookEditingId = worldBook.id;
+        const entries = Array.isArray(worldBook.entries) ? worldBook.entries : [];
         const rows = entries.length
             ? entries.map(entry => {
                 const primary = (entry.key || []).join('、') || '无主关键词';
@@ -4915,30 +5383,32 @@ const app = {
                                 <div style="font-size:13px;color:#4b5563;line-height:1.6;margin-top:6px;white-space:pre-line;">${entry.content}</div>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
-                                <button class="send-btn" style="margin:0;padding:5px 10px;font-size:12px;" onclick="app.openWorldBookEntryEditor('${contact.id}', ${entry.uid})">编辑</button>
-                                <button class="feedback-btn secondary" style="padding:5px 10px;font-size:12px;" onclick="app.deleteWorldBookEntry('${contact.id}', ${entry.uid})">删除</button>
+                                <button class="send-btn" style="margin:0;padding:5px 10px;font-size:12px;" onclick="app.openWorldBookEntryEditor('${worldBook.id}', ${entry.uid})">编辑</button>
+                                <button class="feedback-btn secondary" style="padding:5px 10px;font-size:12px;" onclick="app.deleteWorldBookEntry('${worldBook.id}', ${entry.uid})">删除</button>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('')
-            : '<div style="font-size:13px;color:#9ca3af;padding:12px 0;">还没有世界书词条，先新增一条或者导入 JSON 吧。</div>';
+            : '<div style="font-size:13px;color:#9ca3af;padding:12px 0;">还没有词条，先新增一条或者导入 JSON 吧。</div>';
         const html = `
             <div style="text-align:left;">
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-                    <button class="send-btn" style="margin:0;" onclick="app.openWorldBookEntryEditor('${contact.id}')">新增词条</button>
-                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.triggerWorldBookImport('${contact.id}')">导入 JSON</button>
+                    <button class="send-btn" style="margin:0;" onclick="app.openWorldBookEntryEditor('${worldBook.id}')">新增词条</button>
+                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.triggerWorldBookImport('${worldBook.id}')">导入到本书</button>
+                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.openWorldBookMoveFolderPrompt('${worldBook.id}', true)">移动文件夹</button>
+                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.openWorldBookManager()">返回世界书库</button>
                 </div>
-                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:10px;">这里是 ${contact.name} 的独立世界书。支持 SillyTavern 常见字段：uid、key、keysecondary、content、constant、selective、order、probability、depth。</div>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:10px;">当前：${worldBook.name}（${entries.length} 条词条） · 所属文件夹：${app.getWorldBookFolderName(worldBook.folderId)}</div>
                 <div style="max-height:340px;overflow:auto;">${rows}</div>
             </div>
         `;
-        app.showModal(`${contact.name} 的世界书`, html);
+        app.showModal(`${worldBook.name}`, html);
         document.getElementById('modal-confirm').style.display = 'none';
     },
 
-    triggerWorldBookImport: (contactId = null) => {
-        app.worldBookEditingContactId = contactId || app.contactDetailContactId || state.currentChatId || null;
+    triggerWorldBookImport: (worldBookId = null) => {
+        app.worldBookEditingId = worldBookId || null;
         const input = document.getElementById('worldbook-upload');
         if (input) {
             input.value = '';
@@ -4947,35 +5417,64 @@ const app = {
     },
 
     handleWorldBookUpload: async (input) => {
-        const file = input.files && input.files[0];
-        if (!file) return;
-        const contact = app.getContact(app.worldBookEditingContactId || app.contactDetailContactId || state.currentChatId);
+        const files = Array.from(input.files || []);
         input.value = '';
-        if (!contact) {
-            app.showToast('没有找到要导入的人物', 'warning', '导入失败');
-            return;
-        }
+        if (!files.length) return;
+        const targetBook = app.worldBookEditingId ? app.getWorldBookById(app.worldBookEditingId) : null;
+        let importedCount = 0;
+        let createdBooks = 0;
+        const errors = [];
         try {
-            const text = await file.text();
-            const parsed = JSON.parse(text);
-            const rawEntries = app.getWorldBookImportEntries(parsed);
-            const entries = app.normalizeWorldBookEntries(rawEntries);
-            if (!entries.length) {
+            for (const file of files) {
+                try {
+                    const text = await file.text();
+                    const parsed = JSON.parse(text);
+                    const rawEntries = app.getWorldBookImportEntries(parsed);
+                    const entries = app.normalizeWorldBookEntries(rawEntries);
+                    if (!entries.length) {
+                        errors.push(`${file.name}：未识别到可用词条`);
+                        continue;
+                    }
+                    if (targetBook) {
+                        app.upsertWorldBookEntries(targetBook, entries);
+                        importedCount += entries.length;
+                        continue;
+                    }
+                    const worldBookName = `${parsed?.name || parsed?.title || file.name.replace(/\.json$/i, '') || `世界书${(state.worldBooks || []).length + 1}`}`.trim();
+                    const worldBookNote = `${parsed?.description || parsed?.comment || ''}`.trim();
+                    const importFolderId = app.worldBookFolderFilterId && app.worldBookFolderFilterId !== 'all'
+                        ? app.resolveWorldBookFolderId(app.worldBookFolderFilterId)
+                        : DEFAULT_WORLD_BOOK_FOLDER_ID;
+                    const created = app.createWorldBook(worldBookName, entries, worldBookNote, 'import', importFolderId);
+                    if (created) {
+                        createdBooks += 1;
+                        importedCount += entries.length;
+                    }
+                } catch (error) {
+                    errors.push(`${file.name}：${error.message}`);
+                }
+            }
+            if (!importedCount) {
                 app.showFeedbackDialog({
                     title: '导入失败',
-                    message: '这个 JSON 里没有识别到可用的世界书词条。',
+                    message: errors[0] || '没有成功导入任何词条。',
                     tone: 'warning',
                     confirmText: '知道了'
                 });
                 return;
             }
-            app.upsertWorldBookEntries(contact, entries);
             utils.save();
-            if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
-                app.openContactDetail(contact.id);
+            app.updateProfileUI();
+            if (targetBook) {
+                app.openWorldBookEntriesManager(targetBook.id);
+                app.showToast(`已导入 ${importedCount} 条词条`, 'success', '导入成功');
+            } else {
+                app.openWorldBookManager();
+                app.showToast(`已导入 ${createdBooks} 本世界书 / ${importedCount} 条词条`, 'success', '导入成功');
             }
-            app.openWorldBookManager(contact.id);
-            app.showToast(`已导入 ${entries.length} 条世界书`, 'success', '导入成功');
+            if (errors.length) {
+                app.showToast(`部分文件导入失败：${errors[0]}`, 'warning', '已部分完成');
+            }
         } catch (error) {
             app.showFeedbackDialog({
                 title: '导入失败',
@@ -4986,12 +5485,12 @@ const app = {
         }
     },
 
-    openWorldBookEntryEditor: (contactId = null, uid = null) => {
-        const contact = app.getContact(contactId || app.worldBookEditingContactId || app.contactDetailContactId || state.currentChatId);
-        if (!contact) return;
-        app.worldBookEditingContactId = contact.id;
-        const existing = uid != null ? app.getContactWorldBook(contact).find(entry => Number(entry.uid) === Number(uid)) : null;
-        const nextUid = existing?.uid || app.getNextWorldBookUid(contact);
+    openWorldBookEntryEditor: (worldBookId = null, uid = null) => {
+        const worldBook = app.getWorldBookById(worldBookId || app.worldBookEditingId);
+        if (!worldBook) return;
+        app.worldBookEditingId = worldBook.id;
+        const existing = uid != null ? (worldBook.entries || []).find(entry => Number(entry.uid) === Number(uid)) : null;
+        const nextUid = existing?.uid || app.getNextWorldBookUid(worldBook);
         const html = `
             <div style="text-align:left;">
                 <label>uid</label>
@@ -5034,13 +5533,13 @@ const app = {
         app.showModal(existing ? `编辑世界书词条` : `新增世界书词条`, html);
         document.getElementById('modal-confirm').style.display = 'block';
         document.getElementById('modal-confirm').innerText = existing ? '保存' : '添加';
-        document.getElementById('modal-confirm').onclick = () => app.saveWorldBookEntry(contact.id, existing?.uid || null);
+        document.getElementById('modal-confirm').onclick = () => app.saveWorldBookEntry(worldBook.id, existing?.uid || null);
     },
 
-    saveWorldBookEntry: (contactId, originalUid = null) => {
-        const contact = app.getContact(contactId);
-        if (!contact) return;
-        const uidValue = Number(document.getElementById('wb-uid').value || 0) || app.getNextWorldBookUid(contact);
+    saveWorldBookEntry: (worldBookId, originalUid = null) => {
+        const worldBook = app.getWorldBookById(worldBookId || app.worldBookEditingId);
+        if (!worldBook) return;
+        const uidValue = Number(document.getElementById('wb-uid').value || 0) || app.getNextWorldBookUid(worldBook);
         const entry = {
             uid: uidValue,
             id: `wb-${uidValue}`,
@@ -5064,41 +5563,61 @@ const app = {
             app.showToast('content 不能为空', 'warning', '还不能保存');
             return;
         }
-        const importedCard = app.ensureContactImportedCard(contact);
-        importedCard.worldBook = (importedCard.worldBook || []).filter(item => Number(item.uid) !== Number(originalUid) && Number(item.uid) !== Number(entry.uid));
-        importedCard.worldBook.push(entry);
-        importedCard.worldBook.sort((a, b) => {
+        worldBook.entries = (worldBook.entries || []).filter(item => Number(item.uid) !== Number(originalUid) && Number(item.uid) !== Number(entry.uid));
+        worldBook.entries.push(entry);
+        worldBook.entries.sort((a, b) => {
             if ((a.order || 100) !== (b.order || 100)) return (a.order || 100) - (b.order || 100);
             return (a.uid || 0) - (b.uid || 0);
         });
+        worldBook.updatedAt = Date.now();
         utils.save();
-        if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
-            app.openContactDetail(contact.id);
-        }
-        app.openWorldBookManager(contact.id);
+        app.updateProfileUI();
+        app.openWorldBookEntriesManager(worldBook.id);
         app.showToast('世界书词条已保存', 'success', '保存成功');
     },
 
-    deleteWorldBookEntry: (contactId, uid) => {
-        const contact = app.getContact(contactId || app.worldBookEditingContactId || app.contactDetailContactId || state.currentChatId);
-        if (!contact) return;
-        const entry = app.getContactWorldBook(contact).find(item => Number(item.uid) === Number(uid));
+    deleteWorldBookEntry: (worldBookId, uid) => {
+        const worldBook = app.getWorldBookById(worldBookId || app.worldBookEditingId);
+        if (!worldBook) return;
+        const entry = (worldBook.entries || []).find(item => Number(item.uid) === Number(uid));
         if (!entry) return;
         app.showFeedbackDialog({
             title: '删除世界书词条？',
-            message: `删除后，${contact.name} 将不再使用“${entry.name || `词条 ${entry.uid}`}”这条规则。`,
+            message: `删除后，“${entry.name || `词条 ${entry.uid}`}”将从《${worldBook.name}》里移除。`,
             tone: 'danger',
             confirmText: '删除',
             cancelText: '取消',
             onConfirm: () => {
-                const importedCard = app.ensureContactImportedCard(contact);
-                importedCard.worldBook = (importedCard.worldBook || []).filter(item => Number(item.uid) !== Number(uid));
+                worldBook.entries = (worldBook.entries || []).filter(item => Number(item.uid) !== Number(uid));
+                worldBook.updatedAt = Date.now();
                 utils.save();
-                if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
-                    app.openContactDetail(contact.id);
-                }
-                app.openWorldBookManager(contact.id);
+                app.openWorldBookEntriesManager(worldBook.id);
                 app.showToast('世界书词条已删除', 'success', '删除成功');
+            }
+        });
+    },
+
+    deleteWorldBook: (worldBookId) => {
+        const worldBook = app.getWorldBookById(worldBookId);
+        if (!worldBook) return;
+        app.showFeedbackDialog({
+            title: '删除整本世界书？',
+            message: `删除后，《${worldBook.name}》会从世界书库移除，并从所有人物上自动卸载。`,
+            tone: 'danger',
+            confirmText: '删除',
+            cancelText: '取消',
+            onConfirm: () => {
+                state.worldBooks = (state.worldBooks || []).filter(book => book.id !== worldBookId);
+                state.contacts.forEach(contact => {
+                    contact.mountedWorldBookIds = (contact.mountedWorldBookIds || []).filter(id => id !== worldBookId);
+                });
+                utils.save();
+                app.updateProfileUI();
+                if (app.contactDetailOpen && app.contactDetailContactId) {
+                    app.openContactDetail(app.contactDetailContactId);
+                }
+                app.openWorldBookManager();
+                app.showToast('世界书已删除', 'success', '删除成功');
             }
         });
     },
@@ -5198,9 +5717,9 @@ const app = {
     },
 
     matchWorldBookEntries: (contact) => {
-        const worldBook = contact?.importedCard?.worldBook || [];
-        if (!worldBook.length) return [];
-        return [...worldBook].filter(entry => {
+        const mountedEntries = app.getMountedWorldBookEntries(contact);
+        if (!mountedEntries.length) return [];
+        return [...mountedEntries].filter(entry => {
             if (!entry.enabled) return false;
             if (entry.constant) return true;
             const depth = Math.max(1, Number(entry.depth) || 4);
@@ -5270,6 +5789,15 @@ const app = {
                 importedCard: card,
                 proactiveChat: { enabled: false, lastSentDate: '', nextSendAt: 0 }
             });
+            if (Array.isArray(card.worldBook) && card.worldBook.length) {
+                const importedBook = app.createWorldBook(`${name} 的人物卡世界书`, card.worldBook, '来源：PNG 人物卡', 'character-card');
+                if (importedBook) {
+                    contact.mountedWorldBookIds = [importedBook.id];
+                }
+                if (contact.importedCard && Array.isArray(contact.importedCard.worldBook)) {
+                    contact.importedCard.worldBook = [];
+                }
+            }
             state.contacts.unshift(contact);
             state.currentChatId = contact.id;
             utils.save();
