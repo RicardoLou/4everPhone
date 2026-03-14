@@ -254,6 +254,7 @@
             word-wrap: break-word; 
             box-shadow: 0 1px 1px rgba(0,0,0,0.05);
         }
+        .message-delete-target { touch-action: pan-y; }
         
         .message-row.sent .message-bubble { 
             background: var(--chat-bubble-sent); 
@@ -276,6 +277,18 @@
         }
         .image-message-wrap { display: flex; flex-direction: column; gap: 8px; }
         .image-message-wrap img { max-width: 100%; border-radius: 10px; display: block; }
+        .image-message-wrap.broken { min-width: 180px; }
+        .image-message-fallback {
+            min-height: 132px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 13px;
+            letter-spacing: 0.2px;
+        }
         .image-message-caption { font-size: 14px; line-height: 1.5; color: inherit; white-space: pre-wrap; word-break: break-word; }
 
         /* Chat Input */
@@ -298,6 +311,7 @@
         .chat-input::-webkit-scrollbar { display: none; width: 0; height: 0; }
         .send-btn { background: var(--primary-color); color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 14px; margin-bottom: 0; cursor: pointer; }
         .send-btn:disabled { opacity: 0.5; }
+        .receive-btn { background: #111827; border-radius: 8px; padding: 6px 10px; font-size: 12px; white-space: nowrap; }
         .chat-media-draft { display: none; align-items: center; gap: 10px; padding: 8px 10px 0; background: #f7f7f7; border-top: 0.5px solid #e5e5e5; }
         .chat-media-draft.active { display: flex; }
         .chat-media-draft-thumb { width: 58px; height: 58px; border-radius: 12px; overflow: hidden; background: #e5e7eb; flex-shrink: 0; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
@@ -399,7 +413,7 @@
         .moment-content { flex: 1; min-width: 0; }
         .moment-name { color: #5d7395; font-weight: 600; margin-bottom: 6px; font-size: 16px; }
         .moment-text { font-size: 16px; line-height: 1.62; margin-bottom: 8px; white-space: pre-wrap; color: #222; }
-        .moment-photo { width: min(100%, 230px); border-radius: 6px; margin-bottom: 8px; object-fit: cover; max-height: 230px; box-shadow: none; }
+        .moment-photo { width: min(100%, 230px); border-radius: 6px; margin-bottom: 8px; object-fit: cover; max-height: 230px; box-shadow: none; cursor: zoom-in; }
         .moment-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #8b8b93; margin-top: 8px; }
         .moment-action-btn { background: #F7F7F7; padding: 2px 8px; border-radius: 4px; color: #576B95; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
@@ -737,6 +751,11 @@
         @keyframes giftRevealBurst { 0% { opacity: 0; transform: scale(0.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.18); } }
         @keyframes giftRevealFloat { 0% { transform: scale(0.94); } 55% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
+        .moment-image-viewer { position: fixed; inset: 0; z-index: 860; background: rgba(10, 10, 12, 0.86); display: none; align-items: center; justify-content: center; padding: 20px; }
+        .moment-image-viewer.active { display: flex; }
+        .moment-image-viewer img { max-width: min(100%, 860px); max-height: min(100%, 86vh); object-fit: contain; border-radius: 12px; box-shadow: 0 16px 50px rgba(0,0,0,0.45); }
+        .moment-image-viewer-close { position: absolute; top: calc(var(--safe-area-top) + 10px); right: 14px; width: 34px; height: 34px; border: none; border-radius: 50%; background: rgba(255,255,255,0.18); color: #fff; font-size: 20px; cursor: pointer; }
+
         /* Food Grid Styling */
         .food-grid-item { background: #f9f9f9; border-radius: 12px; padding: 15px 10px; transition: all 0.2s; border: 1px solid transparent; }
         .food-grid-item:active { background: #eef; border-color: var(--primary-color); transform: scale(0.98); }
@@ -763,11 +782,13 @@
         }
         .moment-btn:active { opacity: 0.72; }
         .moment-comments { background: #f7f7f7; margin-top: 8px; padding: 8px 10px; border-radius: 4px; font-size: 13px; }
+        .moment-like-list { margin-top: 8px; padding: 7px 10px; border-radius: 4px; background: #f7f7f7; color: #576B95; font-size: 13px; line-height: 1.45; }
         .moment-comment-row { margin-bottom: 6px; line-height: 1.5; color: #5f636c; }
         .moment-comment-row:last-child { margin-bottom: 0; }
         .moment-comment-row.reply-me { background: #fff8ef; border: 1px solid #f1dcc1; border-radius: 8px; padding: 6px 8px; color: #6d533a; }
         .moment-comment-tag { color: #d07a36; font-size: 11px; margin-right: 4px; font-weight: 700; }
         .moment-comment-user { color: #5d7395; font-weight: 600; }
+        .moment-comment-reply-btn { margin-left: 8px; font-size: 12px; color: #576B95; cursor: pointer; }
         
         .comment-input-box { display: none; margin-top: 8px; }
         .comment-input-box.active { display: flex; gap: 8px; }
@@ -1014,6 +1035,12 @@
                     <span class="settings-value">关系/偏好</span>
                     <span class="arrow-right">›</span>
                 </div>
+                <div class="settings-cell" onclick="app.openWorldBookManager()">
+                    <span class="settings-icon">📚</span>
+                    <span class="settings-label">世界书</span>
+                    <span class="settings-value" id="contact-detail-worldbook-count">0 条</span>
+                    <span class="arrow-right">›</span>
+                </div>
             </div>
 
             <div class="settings-group">
@@ -1062,6 +1089,7 @@
             <div class="input-icon-btn" onclick="app.toggleVoiceMode()">🎤</div>
             <textarea class="chat-input" id="msg-input" rows="1" placeholder="发送消息..."></textarea>
             <div class="input-icon-btn" onclick="app.toggleActionSheet()">⊕</div>
+            <button class="send-btn receive-btn" id="receive-btn">让TA接收</button>
             <button class="send-btn" id="send-btn">发送</button>
         </div>
     </div>
@@ -1073,6 +1101,10 @@
             <div class="grid-item" onclick="app.sendImage()">
                 <div class="grid-icon">🖼️</div>
                 <span>相册</span>
+            </div>
+            <div class="grid-item" onclick="app.openGiftListFromChat()">
+                <div class="grid-icon">🎁</div>
+                <span>礼物</span>
             </div>
             <div class="grid-item" onclick="app.sendRedPacket()">
                 <div class="grid-icon">🧧</div>
@@ -1250,15 +1282,15 @@
                     <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">自动判断时，TA 会按场景自己决定是一句、两句还是三四句。</div>
                     <label style="font-size:12px;color:#666;">个性签名</label>
                     <input type="text" id="new-contact-signature" placeholder="比如：风有点甜，今天也想被你记住">
-                    <label style="font-size:12px;color:#666;">每日主动推送</label>
-                    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
-                        <select id="new-contact-daily-enabled" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;">
-                            <option value="on">开启</option>
-                            <option value="off">关闭</option>
-                        </select>
-                        <input type="time" id="new-contact-daily-time" value="16:00" style="flex:1;">
-                    </div>
-                    <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">到点后，TA 会主动给你发一条新信息，内容会尽量从热点、歌曲或热梗里挑。</div>
+                    <label style="font-size:12px;color:#666;">你在TA面前的人设（可选）</label>
+                    <textarea id="new-contact-user-persona" rows="2" placeholder="例如：我是TA的恋人，外冷内热，嘴硬但在意TA。"></textarea>
+                    <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">这份人设只对当前联系人生效，换到别的联系人可以完全不同。</div>
+                    <label style="font-size:12px;color:#666;">主动说话</label>
+                    <select id="new-contact-proactive-enabled" style="margin-bottom:10px;">
+                        <option value="off">默认关闭</option>
+                        <option value="on">开启</option>
+                    </select>
+                    <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">默认关闭。开启后，TA 会每天随机挑一个时间主动来找你，内容由 AI 根据最近 3 到 5 条对话自己决定。</div>
                     <div style="margin:4px 0 12px;">
                         <button class="send-btn" style="margin:0;width:100%;background:#111827;" onclick="document.getElementById('character-card-upload').click()">导入 PNG 人物卡</button>
                         <div style="font-size:12px;color:#999;line-height:1.45;margin-top:8px;">支持从角色卡 PNG 中读取名字、描述、性格、开场白和世界书，导入后会直接新增联系人。</div>
@@ -1317,6 +1349,11 @@
         </div>
     </div>
 
+    <div class="moment-image-viewer" id="moment-image-viewer" onclick="app.closeMomentImageViewer(event)">
+        <button class="moment-image-viewer-close" onclick="app.closeMomentImageViewer()">×</button>
+        <img id="moment-image-viewer-img" src="" alt="朋友圈大图" onclick="event.stopPropagation()">
+    </div>
+
     <!-- Hidden Inputs -->
     <input type="file" id="new-contact-avatar" hidden accept="image/*" onchange="app.handleNewContactAvatar(this)">
     <input type="file" id="chat-image-upload" hidden accept="image/*" onchange="app.handleChatImage(this)">
@@ -1325,6 +1362,7 @@
     <input type="file" id="avatar-upload" hidden accept="image/*" onchange="app.uploadAvatar(this, 'user')">
     <input type="file" id="ai-avatar-upload" hidden accept="image/*" onchange="app.uploadAvatar(this, 'ai')">
     <input type="file" id="character-card-upload" hidden accept=".png,image/png" onchange="app.handleCharacterCardUpload(this)">
+    <input type="file" id="worldbook-upload" hidden accept=".json,application/json" onchange="app.handleWorldBookUpload(this)">
 
 </div>
 
@@ -1334,11 +1372,12 @@
  */
 
 // Configuration
-const API_CONFIG = {
-    url: 'https://az.zlapi.vip/v1/chat/completions',
-    key: 'sk-nYWXbw1oi6Hlaqug2mMNQidHBGVfXJyDYLzgIEh5ch9vRjIn',
-    model: '[百合]claude-sonnet-4-6-kiro-thinking'
+const DEFAULT_API_CONFIG = {
+    url: '',
+    key: '',
+    model: '[哆啦]claude-opus-4-6'
 };
+const API_CONFIG = { ...DEFAULT_API_CONFIG };
 const DEFAULT_PROMPT = '你是用户最亲近的聊天对象之一，不要提你是AI。当前时间：{{time}}。请用真人口语回复，语气自然、有情绪起伏，贴合你的人设。';
 const FESTIVAL_MAP = {
     '01-01': { name: '元旦', gift: '新年盲盒' },
@@ -1395,10 +1434,10 @@ const DAILY_SHARE_TYPE_LABELS = {
     meme: '热梗话题'
 };
 const DAILY_SHARE_SOURCE_FAIL_COOLDOWN_MS = 45 * 60 * 1000;
-const AUTO_MOMENT_MIN_GAP_MS = 18 * 60 * 1000;
-const AUTO_MOMENT_MIN_DELAY_MS = 18 * 60 * 1000;
-const AUTO_MOMENT_MAX_DELAY_MS = 4 * 60 * 60 * 1000;
-const AUTO_MOMENT_MAX_PER_DAY = 3;
+const AUTO_MOMENT_MIN_GAP_MS = 20 * 60 * 60 * 1000;
+const AUTO_MOMENT_MIN_DELAY_MS = 22 * 60 * 60 * 1000;
+const AUTO_MOMENT_MAX_DELAY_MS = 72 * 60 * 60 * 1000;
+const AUTO_MOMENT_MAX_PER_DAY = 1;
 const LOCAL_DB_NAME = 'nn_phone_local_db';
 const LOCAL_DB_VERSION = 1;
 const LOCAL_DB_STORE = 'kv';
@@ -1418,6 +1457,9 @@ const state = {
         name: '我',
         avatar: 'https://ui-avatars.com/api/?name=Me&background=0D8ABC&color=fff',
         momentCover: DEFAULT_MOMENT_COVER
+    },
+    settings: {
+        api: { ...DEFAULT_API_CONFIG }
     },
     firstTime: true
 };
@@ -1500,6 +1542,7 @@ const utils = {
         state.currentChatId = parsed.currentChatId || null;
         state.wallet = parsed.wallet || state.wallet;
         state.userMoments = Array.isArray(parsed.userMoments) ? parsed.userMoments : [];
+        state.settings = parsed.settings || state.settings;
         if (parsed.contacts && Array.isArray(parsed.contacts)) {
             state.contacts = parsed.contacts;
         } else {
@@ -1544,8 +1587,13 @@ const utils = {
         }
         return { migrated: fromLegacyStorage };
     },
-    scrollToBottom: () => {
+    scrollToBottom: (immediate = false) => {
         const list = document.getElementById('msg-list');
+        if (!list) return;
+        if (immediate) {
+            list.scrollTop = list.scrollHeight;
+            return;
+        }
         setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
     },
     // Resize image to base64
@@ -1588,15 +1636,21 @@ const utils = {
 const app = {
     feedbackDialogHandler: null,
     toastCounter: 0,
+    momentReplyTargets: {},
+    messageDeletePressTimer: null,
+    messageDeletePressStart: null,
+    messageDeleteBlockUntil: 0,
 
     init: async () => {
         app.syncViewportHeight();
         app.setupStandaloneSupport();
         const loadResult = await utils.load();
         app.ensureDefaultContact();
+        app.syncApiConfigFromState();
 
         // Listeners
         document.getElementById('send-btn').addEventListener('click', app.sendMessage);
+        document.getElementById('receive-btn').addEventListener('click', app.receivePendingMessages);
         document.getElementById('msg-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); app.sendMessage(); }
         });
@@ -1608,7 +1662,7 @@ const app = {
         app.updateClock();
         setInterval(app.updateClock, 1000);
         setInterval(() => app.maybeCreateAutoMoment(), 120000);
-        setInterval(() => app.runDailyShareScheduler(), 30000);
+        setInterval(() => app.runProactiveChatScheduler(), 30000);
         setInterval(() => app.refreshMomentRelativeTimes(), 60000);
         setInterval(() => app.tickHeartbeat(), 3000);
 
@@ -1616,11 +1670,31 @@ const app = {
         app.renderMoments();
         app.updateProfileUI();
         app.tickHeartbeat();
-        setTimeout(() => app.runDailyShareScheduler(), 1200);
+        setTimeout(() => app.runProactiveChatScheduler(), 1200);
         app.registerServiceWorker();
         if (loadResult?.migrated) utils.save();
 
         if (state.firstTime) app.showGuide();
+    },
+
+    normalizeApiConfig: (apiLike = {}) => {
+        const fallback = state.settings?.api || DEFAULT_API_CONFIG;
+        return {
+            url: `${apiLike.url || fallback.url || DEFAULT_API_CONFIG.url}`.trim(),
+            key: `${apiLike.key || fallback.key || ''}`.trim(),
+            model: `${apiLike.model || fallback.model || DEFAULT_API_CONFIG.model}`.trim()
+        };
+    },
+
+    syncApiConfigFromState: () => {
+        const normalized = app.normalizeApiConfig(state.settings?.api || {});
+        state.settings = {
+            ...state.settings,
+            api: normalized
+        };
+        API_CONFIG.url = normalized.url;
+        API_CONFIG.key = normalized.key;
+        API_CONFIG.model = normalized.model;
     },
 
     syncViewportHeight: () => {
@@ -1676,6 +1750,10 @@ const app = {
         if (!state.contacts.length) {
             state.contacts.push(app.createContact({ id: 'c-default', name: '我的专属AI', prompt: DEFAULT_PROMPT }));
         }
+        state.settings = {
+            ...state.settings,
+            api: app.normalizeApiConfig(state.settings?.api || {})
+        };
         state.user = {
             ...state.user,
             name: `${state.user?.name || '我'}`,
@@ -1696,11 +1774,13 @@ const app = {
             createdAt: m.createdAt || (Date.now() - (idx + 1) * 5 * 60 * 1000),
             time: m.time || `${(idx + 1) * 5}分钟前`,
             likes: typeof m.likes === 'number' ? m.likes : 0,
+            likedBy: app.normalizeMomentLikedBy(m.likedBy || []),
             liked: !!m.liked,
             comments: Array.isArray(m.comments)
-                ? m.comments.map(c => (typeof c === 'string' ? { user: '好友', text: c } : c))
+                ? m.comments.map(c => app.normalizeMomentComment(c, '好友'))
                 : []
         }));
+        state.userMoments.forEach(m => app.syncUserMomentLikeStats(m));
         if (!state.currentChatId && state.contacts[0]) state.currentChatId = state.contacts[0].id;
     },
 
@@ -1717,6 +1797,7 @@ const app = {
             temperature: typeof contact.temperature === 'number' ? contact.temperature : parseFloat(contact.temperature || 0.7),
             replyLength: ['auto', 'short', 'medium', 'long'].includes(contact.replyLength) ? contact.replyLength : 'auto',
             prompt: contact.prompt || DEFAULT_PROMPT,
+            userPersona: `${contact.userPersona || ''}`.trim(),
             messages: Array.isArray(contact.messages) ? contact.messages : [],
             memories: Array.isArray(contact.memories) ? contact.memories : [],
             traits: contact.traits || { personality: [], preferences: [], relationship: [], facts: [] },
@@ -1736,6 +1817,11 @@ const app = {
                 state: contact.heartbeat?.state || '平稳'
             },
             importedCard: contact.importedCard || null,
+            proactiveChat: {
+                enabled: !!contact.proactiveChat?.enabled,
+                lastSentDate: contact.proactiveChat?.lastSentDate || '',
+                nextSendAt: Number(contact.proactiveChat?.nextSendAt) || 0
+            },
             dailyShare: {
                 enabled: contact.dailyShare?.enabled ?? true,
                 time: /^\d{2}:\d{2}$/.test(contact.dailyShare?.time || '') ? contact.dailyShare.time : '16:00',
@@ -1746,6 +1832,9 @@ const app = {
         normalized.messages = normalized.messages.map((msg, idx) => ({
             ...msg,
             id: msg.id || utils.id(`msg-${idx}`),
+            content: msg.type === 'image' ? app.sanitizeImageMessageContent(msg.content) : msg.content,
+            awaitingReceive: msg.sender === 'user' ? !!msg.awaitingReceive : false,
+            queuedAt: Number(msg.queuedAt) || 0,
             opened: (() => {
                 const isAiGift = msg.type === 'gift' && ((`${msg.content || ''}`.split('|')[3] === 'from-ai') || msg.sender === 'ai');
                 if (typeof msg.opened === 'boolean') {
@@ -1761,8 +1850,9 @@ const app = {
             id: m.id || utils.id('m'),
             contactId: m.contactId || id,
             createdAt: m.createdAt || (Date.now() - (idx + 1) * 7 * 60 * 1000),
+            likedBy: app.normalizeMomentLikedBy(m.likedBy || []),
             comments: Array.isArray(m.comments)
-                ? m.comments.map(c => (typeof c === 'string' ? { user: normalized.name, text: c } : c))
+                ? m.comments.map(c => app.normalizeMomentComment(c, normalized.name))
                 : []
         }));
         return normalized;
@@ -1779,6 +1869,7 @@ const app = {
             temperature: opts.temperature ?? 0.7,
             replyLength: ['auto', 'short', 'medium', 'long'].includes(opts.replyLength) ? opts.replyLength : 'auto',
             prompt: opts.prompt || DEFAULT_PROMPT,
+            userPersona: `${opts.userPersona || ''}`.trim(),
             messages: opts.messages || [],
             memories: opts.memories || [],
             traits: opts.traits || { personality: [], preferences: [], relationship: [], facts: [] },
@@ -1798,6 +1889,11 @@ const app = {
                 state: opts.heartbeat?.state || '平稳'
             },
             importedCard: opts.importedCard || null,
+            proactiveChat: {
+                enabled: !!opts.proactiveChat?.enabled,
+                lastSentDate: opts.proactiveChat?.lastSentDate || '',
+                nextSendAt: Number(opts.proactiveChat?.nextSendAt) || 0
+            },
             dailyShare: {
                 enabled: opts.dailyShare?.enabled ?? true,
                 time: /^\d{2}:\d{2}$/.test(opts.dailyShare?.time || '') ? opts.dailyShare.time : '16:00',
@@ -1864,6 +1960,34 @@ const app = {
         if (mode === 'medium') return '回复默认 2 句左右，必要时可以到 3 句。';
         if (mode === 'long') return '回复默认 2 到 4 句，内容可以更完整，但不要啰嗦。';
         return '不要把句数写死，按语境自己判断回复长度。简单接话时 1 句就够，需要安慰、解释、推进话题时可以自然写成 2 到 4 句。';
+    },
+
+    normalizeMomentComment: (comment, fallbackUser = '好友') => {
+        const raw = typeof comment === 'string' ? { user: fallbackUser, text: comment } : { ...(comment || {}) };
+        return {
+            ...raw,
+            id: raw.id || utils.id('cmt'),
+            user: raw.user || fallbackUser,
+            text: typeof raw.text === 'string' ? raw.text : `${raw.text || ''}`,
+            contactId: raw.contactId || raw.autoFrom || ''
+        };
+    },
+
+    normalizeMomentLikedBy: (likedBy = []) => Array.isArray(likedBy)
+        ? [...new Set(likedBy.map(id => `${id || ''}`).filter(Boolean))]
+        : [],
+
+    getMomentLikeNames: (moment) => {
+        const likedBy = app.normalizeMomentLikedBy(moment?.likedBy || []);
+        if (!likedBy.length) return [];
+        return likedBy.map(id => app.getContact(id)?.name || '').filter(Boolean);
+    },
+
+    syncUserMomentLikeStats: (moment) => {
+        if (!moment) return;
+        moment.likedBy = app.normalizeMomentLikedBy(moment.likedBy || []);
+        const likerCount = moment.likedBy.length;
+        moment.likes = likerCount + (moment.liked ? 1 : 0);
     },
 
     estimateRestingHeartRate: (contact) => {
@@ -2043,6 +2167,56 @@ const app = {
         return safeMin + Math.floor(Math.random() * (safeMax - safeMin + 1));
     },
 
+    randomTimestampBetween: (min, max) => {
+        const safeMin = Math.min(min, max);
+        const safeMax = Math.max(min, max);
+        return safeMin + Math.floor(Math.random() * Math.max(1, safeMax - safeMin + 1));
+    },
+
+    getProactiveWindowStart: (dateLike = Date.now()) => {
+        const date = new Date(dateLike);
+        date.setHours(10, 0, 0, 0);
+        return date.getTime();
+    },
+
+    getProactiveWindowEnd: (dateLike = Date.now()) => {
+        const date = new Date(dateLike);
+        date.setHours(22, 30, 0, 0);
+        return date.getTime();
+    },
+
+    ensureProactiveChatSchedule: (contact, now = Date.now(), forceReschedule = false) => {
+        if (!contact?.proactiveChat?.enabled) return false;
+        const proactiveChat = contact.proactiveChat;
+        const currentDate = new Date(now);
+        const todayKey = app.getTodayKey(currentDate);
+        const nextDateKey = proactiveChat.nextSendAt ? app.getTodayKey(new Date(proactiveChat.nextSendAt)) : '';
+        let targetDate = new Date(currentDate);
+        let changed = false;
+
+        if (proactiveChat.lastSentDate === todayKey || app.getProactiveWindowEnd(currentDate) - now < 5 * 60 * 1000) {
+            targetDate.setDate(targetDate.getDate() + 1);
+        }
+
+        const targetKey = app.getTodayKey(targetDate);
+        if (forceReschedule || !proactiveChat.nextSendAt || nextDateKey !== targetKey || proactiveChat.nextSendAt <= now) {
+            let minTs = app.getProactiveWindowStart(targetDate);
+            let maxTs = app.getProactiveWindowEnd(targetDate);
+            if (targetKey === todayKey) {
+                minTs = Math.max(minTs, now + app.randomInt(8, 26) * 60 * 1000);
+            }
+            if (minTs >= maxTs) {
+                targetDate = new Date(currentDate);
+                targetDate.setDate(targetDate.getDate() + 1);
+                minTs = app.getProactiveWindowStart(targetDate);
+                maxTs = app.getProactiveWindowEnd(targetDate);
+            }
+            proactiveChat.nextSendAt = app.randomTimestampBetween(minTs, maxTs);
+            changed = true;
+        }
+        return changed;
+    },
+
     getNextAutoMomentDelayMs: () => app.randomInt(AUTO_MOMENT_MIN_DELAY_MS, AUTO_MOMENT_MAX_DELAY_MS),
 
     refreshAutoMomentQuota: (contact, now = Date.now()) => {
@@ -2163,14 +2337,36 @@ const app = {
 
     pendingChatImage: null,
 
-    getImageMessagePayload: (content) => {
+    isBlockedLegacyImageUrl: (url = '') => /https?:\/\/(?:via\.placeholder\.com|placeholder\.com|placehold\.co)\//i.test(`${url || ''}`.trim()),
+
+    sanitizeImageUrl: (url = '') => {
+        const value = `${url || ''}`.trim();
+        if (!value) return '';
+        if (app.isBlockedLegacyImageUrl(value)) return '';
+        return value;
+    },
+
+    sanitizeImageMessageContent: (content) => {
         if (content && typeof content === 'object') {
             return {
-                url: `${content.url || content.src || ''}`,
+                ...content,
+                url: app.sanitizeImageUrl(content.url || content.src || ''),
                 text: `${content.text || content.caption || ''}`.trim()
             };
         }
-        return { url: `${content || ''}`, text: '' };
+        return {
+            url: app.sanitizeImageUrl(content || ''),
+            text: ''
+        };
+    },
+
+    getImageMessagePayload: (content) => {
+        const sanitized = app.sanitizeImageMessageContent(content);
+        return {
+            url: sanitized.url || '',
+            text: sanitized.text || '',
+            unavailable: !sanitized.url
+        };
     },
 
     getMessagePreviewText: (msg) => {
@@ -2230,23 +2426,26 @@ const app = {
         app.renderPendingChatImageDraft();
     },
 
-    appendMessageToContact: (contact, sender, content, type = 'text') => {
+    appendMessageToContact: (contact, sender, content, type = 'text', extra = {}) => {
         if (!contact) return;
         const isGiftFromAi = type === 'gift' && (((content || '').split('|')[3] === 'from-ai') || sender === 'ai');
-        contact.messages.push({
+        const message = {
             id: utils.id('msg'),
             sender,
             content,
             type,
             time: Date.now(),
             opened: isGiftFromAi ? false : true,
-            openedAt: null
-        });
+            openedAt: null,
+            ...extra
+        };
+        contact.messages.push(message);
         const preview = document.getElementById(`preview-${contact.id}`);
         if (preview) preview.innerText = app.getMessagePreviewText({ sender, content, type });
         if (state.currentChatId === contact.id) app.renderMessages();
         app.renderChatList();
         utils.save();
+        return message;
     },
 
     addMomentToContact: (contact, text, extras = {}) => {
@@ -2262,6 +2461,7 @@ const app = {
             createdAt: Date.now(),
             time: '刚刚',
             likes: typeof extras.likes === 'number' ? extras.likes : Math.floor(Math.random() * 4),
+            likedBy: app.normalizeMomentLikedBy(extras.likedBy || []),
             liked: false,
             comments: []
         });
@@ -2434,6 +2634,7 @@ const app = {
                 body: JSON.stringify({ model: API_CONFIG.model, messages: [system, userMsg], temperature: contact.temperature, stream: false })
             });
             const data = await res.json();
+            app.logModelResponse('daily-share', '', data);
             const parsed = app.extractJsonBlock(data?.choices?.[0]?.message?.content || '');
             if (!parsed) return fallback;
             return {
@@ -2549,8 +2750,8 @@ const app = {
                 temperature: Math.max(0.45, Math.min(0.95, Number(current.temperature) || 0.7)),
                 stream: false
             };
-            const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 700 });
-            greeting = app.cleanAiText(data?.choices?.[0]?.message?.content || fallback, 72, 3) || fallback;
+            const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 700, scene: 'greeting' });
+            greeting = app.cleanAiText(data?.choices?.[0]?.message?.content || fallback, 0, 0) || fallback;
         } catch (_) {}
 
         const latest = app.getContact(current.id);
@@ -2562,23 +2763,105 @@ const app = {
         }
     },
 
-    runDailyShareScheduler: () => {
-        const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const todayKey = app.getTodayKey(now);
-        state.contacts.forEach(contact => {
-            const dailyShare = contact.dailyShare || {};
-            if (!dailyShare.enabled) return;
-            if (dailyShare.lastSentDate === todayKey) return;
-            if (nowMinutes < app.parseClockMinutes(dailyShare.time || '16:00')) return;
-            if (!(contact.messages || []).length) {
-                app.reserveTodayDailyShareSlot(contact, now);
-                utils.save();
-                app.sendInitialGreeting(contact);
-                return;
+    buildProactiveChatFallback: (contact) => {
+        const recentUserText = (contact?.messages || [])
+            .filter(msg => msg.sender === 'user')
+            .slice(-3)
+            .map(msg => app.getHistoryMessageContent(msg))
+            .filter(Boolean)
+            .pop();
+        if (recentUserText) {
+            return `刚刚又想起你前面说的那句“${`${recentUserText}`.slice(0, 18)}”，就想来接一句。你现在怎么样了？`;
+        }
+        return '刚刚突然想起你，就想来看看你在忙什么。';
+    },
+
+    composeProactiveChatContent: async (contact) => {
+        const recentMessages = (contact?.messages || [])
+            .slice(-5)
+            .map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                speaker: msg.sender === 'user' ? state.user.name : contact.name,
+                content: app.getHistoryMessageContent(msg)
+            }))
+            .filter(item => item.content);
+        const fallback = app.buildProactiveChatFallback(contact);
+        if (!recentMessages.length) {
+            return { content: fallback, arousal: 20 };
+        }
+        try {
+            const transcript = recentMessages
+                .map((item, index) => `${index + 1}. ${item.speaker}：${item.content}`)
+                .join('\n');
+            const system = app.buildSystemPrompt(
+                contact,
+                'chat',
+                '你现在不是被动回复，而是隔了一段时间后主动来找用户。请根据最近 3 到 5 条对话，自行判断最自然的主动内容：可以是关心、追问、接前话、延续情绪、突然想到一个点。不要像热点播报，不要像系统提醒，不要提“定时”“打卡”“刚刷到热榜”。'
+            );
+            const userMsg = {
+                role: 'user',
+                content: `最近对话如下：\n${transcript}\n\n请你现在主动给${state.user.name}发一条消息。要求：1 到 3 句，像真人隔了一阵后突然想起对方才会发的话，要自然、有延续感。`
+            };
+            const payload = {
+                model: API_CONFIG.model,
+                messages: [system, app.getStructuredChatInstruction(), userMsg],
+                temperature: Math.max(0.5, Math.min(1, Number(contact.temperature) || 0.7)),
+                stream: false
+            };
+            const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 700, scene: 'proactive-chat' });
+            if (!data?.choices?.length) return { content: fallback, arousal: 20 };
+            return app.parseStructuredChatReply(data.choices[0].message.content, contact, fallback);
+        } catch (error) {
+            return {
+                content: fallback,
+                arousal: app.analyzeHeartbeatReaction(contact, fallback).intensity
+            };
+        }
+    },
+
+    proactiveChatLocks: {},
+
+    deliverProactiveChat: async (contact) => {
+        if (!contact?.proactiveChat?.enabled) return;
+        if (app.proactiveChatLocks[contact.id]) return;
+        const recentMessages = (contact.messages || []).filter(msg => app.getHistoryMessageContent(msg)).slice(-5);
+        if (recentMessages.length < 2 || !recentMessages.some(msg => msg.sender === 'user')) return;
+        app.proactiveChatLocks[contact.id] = true;
+        const todayKey = app.getTodayKey();
+        try {
+            if (state.currentChatId === contact.id && document.getElementById('chat-view')?.classList.contains('active')) {
+                app.setTyping(true);
+                await app.sleep(app.randomInt(480, 1100));
             }
-            app.deliverDailyShare(contact);
+            const structured = await app.composeProactiveChatContent(contact);
+            app.applyHeartbeatArousal(contact, structured.arousal);
+            app.appendMessageToContact(contact, 'ai', structured.content, 'text');
+            contact.proactiveChat.lastSentDate = todayKey;
+            app.ensureProactiveChatSchedule(contact, Date.now(), true);
+            utils.save();
+        } finally {
+            if (state.currentChatId === contact.id) app.setTyping(false);
+            delete app.proactiveChatLocks[contact.id];
+        }
+    },
+
+    runProactiveChatScheduler: () => {
+        const now = Date.now();
+        let dirty = false;
+        state.contacts.forEach(contact => {
+            if (!contact?.proactiveChat?.enabled) return;
+            dirty = app.ensureProactiveChatSchedule(contact, now) || dirty;
+            const proactiveChat = contact.proactiveChat;
+            if (proactiveChat.lastSentDate === app.getTodayKey(new Date(now))) return;
+            if (!Number.isFinite(proactiveChat.nextSendAt) || proactiveChat.nextSendAt <= 0) return;
+            if (app.getTodayKey(new Date(proactiveChat.nextSendAt)) !== app.getTodayKey(new Date(now))) return;
+            if (now >= proactiveChat.nextSendAt) app.deliverProactiveChat(contact);
         });
+        if (dirty) utils.save();
+    },
+
+    runDailyShareScheduler: () => {
+        app.runProactiveChatScheduler();
     },
 
     getPersonalGiftSummary: () => {
@@ -2830,7 +3113,7 @@ const app = {
         document.getElementById('tab-bar').style.display = 'none';
         document.getElementById('main-nav').style.background = '#EDEDED';
 
-        app.renderMessages();
+        app.renderMessages(true);
         app.renderPendingChatImageDraft();
         app.maybeSendFestivalGift(contact);
     },
@@ -2873,6 +3156,7 @@ const app = {
         document.getElementById('contact-detail-temp').innerText = Number(contact.temperature).toFixed(1);
         document.getElementById('contact-detail-moments-count').innerText = `${contact.moments.length}`;
         document.getElementById('contact-detail-gifts-count').innerText = `${(contact.giftHistory || []).length}`;
+        document.getElementById('contact-detail-worldbook-count').innerText = `${app.getContactWorldBook(contact).length} 条`;
 
         const latestMoment = app.getLatestContactMoment(contact);
         const preview = document.getElementById('contact-moment-preview');
@@ -2971,24 +3255,36 @@ const app = {
         list.innerHTML = moments.map(m => {
             const commentsHtml = (m.comments || []).map(c => {
                 const tag = c.isReplyToUser ? '<span class="moment-comment-tag">回复你</span>' : '';
-                return `<div class="moment-comment-row ${c.isReplyToUser ? 'reply-me' : ''}">${tag}<span class="moment-comment-user">${c.user}</span>：${c.text}</div>`;
+                const pendingStyle = c.pending ? 'opacity:0.7;' : '';
+                const replyAction = (!c.pending && c.user && c.user !== state.user.name)
+                    ? `<span class="moment-comment-reply-btn" onclick="app.prepareMomentReply('${m.id}', '${c.id}', 'contact')">回复</span>`
+                    : '';
+                return `<div class="moment-comment-row ${c.isReplyToUser ? 'reply-me' : ''}" style="${pendingStyle}">${tag}<span class="moment-comment-user">${c.user}</span>：${c.text}${replyAction}</div>`;
             }).join('');
-            const imageHtml = m.image ? `<img class="moment-photo" src="${m.image}" alt="朋友圈图片">` : '';
+            const imageHtml = m.image ? `<img class="moment-photo" src="${m.image}" alt="朋友圈图片" onclick="app.previewMomentImageByEvent(event)">` : '';
+            const textHtml = m.text ? `<div class="moment-text">${m.text}</div>` : '';
+            const likeNames = app.getMomentLikeNames(m);
+            const likeListHtml = likeNames.length ? `<div class="moment-like-list">❤️ ${likeNames.join('、')}</div>` : '';
             return `
                 <div class="moment-item">
                     <div class="moment-avatar" style="background:${contact.avatar ? 'transparent' : '#eee'};overflow:hidden;">${contact.avatar ? `<img src="${contact.avatar}" style="width:100%;height:100%;object-fit:cover">` : ''}</div>
                     <div class="moment-content">
                         <div class="moment-name">${contact.name}</div>
-                        <div class="moment-text">${m.text || ''}</div>
+                        ${textHtml}
                         ${imageHtml}
                         <div class="moment-actions">
                             <div class="moment-btn-group">
-                                <div class="moment-btn">${m.likes || 0} 赞</div>
-                                <div class="moment-btn">${(m.comments || []).length} 评论</div>
+                                <div class="moment-btn" onclick="app.toggleLike('${m.id}')">${m.liked ? '❤️' : '🤍'} ${m.likes || 0}</div>
+                                <div class="moment-btn" onclick="app.showCommentBox('${m.id}', 'contact')">💬 评论</div>
                             </div>
                             <span style="color:#999;font-size:12px;">${app.formatMomentTime(m.createdAt, m.time || '')}</span>
                         </div>
-                        <div class="moment-comments" style="${commentsHtml ? '' : 'display:none'}">${commentsHtml}</div>
+                        ${likeListHtml}
+                        <div class="comment-input-box" id="contact-comment-box-${m.id}">
+                            <input type="text" id="contact-comment-input-${m.id}" placeholder="写点什么..." style="flex:1; padding:6px;">
+                            <button class="send-btn" style="margin:0;" onclick="app.submitComment('${m.id}', 'contact')">发送</button>
+                        </div>
+                        <div class="moment-comments" id="contact-comments-${m.id}" style="${commentsHtml ? '' : 'display:none'}">${commentsHtml}</div>
                     </div>
                 </div>
             `;
@@ -3048,7 +3344,7 @@ const app = {
     },
 
     // Messaging
-    renderMessages: () => {
+    renderMessages: (scrollImmediately = false) => {
         const contact = app.getActiveContact();
         const list = document.getElementById('msg-list');
         list.innerHTML = '';
@@ -3064,7 +3360,10 @@ const app = {
                 const caption = image.text ? `<div class="image-message-caption">${image.text}</div>` : '';
                 content = `
                     <div class="image-message-wrap">
-                        <img src="${image.url}" alt="聊天图片">
+                        ${image.url
+                            ? `<img src="${image.url}" alt="聊天图片" onerror="this.closest('.image-message-wrap')?.classList.add('broken'); this.insertAdjacentHTML('afterend', '<div class=&quot;image-message-fallback&quot;>图片已失效</div>'); this.remove();">`
+                            : '<div class="image-message-fallback">图片已失效</div>'
+                        }
                         ${caption}
                     </div>
                 `;
@@ -3122,17 +3421,103 @@ const app = {
                 <div class="msg-avatar ${avatarAction}" ${avatarClick} style="background:${msg.sender === 'user' ? 'transparent' : (contact.avatar ? 'transparent' : '#007AFF')}">
                     ${avatarHtml}
                 </div>
-                <div class="${bubbleClass}">${content}</div>
+                <div class="${bubbleClass} message-delete-target">${content}</div>
             `;
+            const deleteTarget = div.querySelector('.message-delete-target');
+            if (deleteTarget) app.bindMessageDeleteGesture(deleteTarget, contact.id, msg.id);
             list.appendChild(div);
         });
-        utils.scrollToBottom();
+        app.updateReceiveButton(contact);
+        utils.scrollToBottom(scrollImmediately);
     },
 
-    addMessage: (sender, content, type = 'text') => {
-        const contact = app.getActiveContact();
+    clearMessageDeletePress: () => {
+        if (app.messageDeletePressTimer) {
+            clearTimeout(app.messageDeletePressTimer);
+            app.messageDeletePressTimer = null;
+        }
+        app.messageDeletePressStart = null;
+    },
+
+    startMessageDeletePress: (contactId, messageId, x = 0, y = 0) => {
+        app.clearMessageDeletePress();
+        app.messageDeletePressStart = { x, y };
+        app.messageDeletePressTimer = setTimeout(() => {
+            app.messageDeleteBlockUntil = Date.now() + 600;
+            app.promptDeleteMessage(contactId, messageId);
+            app.clearMessageDeletePress();
+        }, 480);
+    },
+
+    moveMessageDeletePress: (x = 0, y = 0) => {
+        if (!app.messageDeletePressStart) return;
+        const movedX = Math.abs((app.messageDeletePressStart.x || 0) - x);
+        const movedY = Math.abs((app.messageDeletePressStart.y || 0) - y);
+        if (movedX > 10 || movedY > 10) app.clearMessageDeletePress();
+    },
+
+    bindMessageDeleteGesture: (element, contactId, messageId) => {
+        if (!element) return;
+        element.onpointerdown = (event) => {
+            const target = event.target;
+            if (target?.closest?.('.gift-open-btn')) return;
+            app.startMessageDeletePress(contactId, messageId, event.clientX || 0, event.clientY || 0);
+        };
+        element.onpointermove = (event) => app.moveMessageDeletePress(event.clientX || 0, event.clientY || 0);
+        element.onpointerup = app.clearMessageDeletePress;
+        element.onpointercancel = app.clearMessageDeletePress;
+        element.onpointerleave = app.clearMessageDeletePress;
+        element.addEventListener('click', (event) => {
+            if (Date.now() < app.messageDeleteBlockUntil) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
+        element.oncontextmenu = (event) => {
+            event.preventDefault();
+            app.promptDeleteMessage(contactId, messageId);
+        };
+    },
+
+    promptDeleteMessage: (contactId, messageId) => {
+        const contact = app.getContact(contactId);
+        const message = contact?.messages?.find(item => item.id === messageId);
+        if (!contact || !message) return;
+        const previewText = message.type === 'image'
+            ? '这条图片消息'
+            : `${app.getHistoryMessageContent(message) || '这条消息'}`.slice(0, 26);
+        app.showFeedbackDialog({
+            title: '删除这条消息？',
+            message: `删除后会同时清理 ${contact.name} 对这条内容的聊天记忆。${previewText ? `\n\n${previewText}` : ''}`,
+            tone: 'danger',
+            confirmText: '删除',
+            cancelText: '取消',
+            onConfirm: () => app.deleteMessage(contactId, messageId)
+        });
+    },
+
+    deleteMessage: (contactId, messageId) => {
+        const contact = app.getContact(contactId);
+        if (!contact?.messages?.length) return;
+        const nextMessages = contact.messages.filter(msg => msg.id !== messageId);
+        if (nextMessages.length === contact.messages.length) return;
+        contact.messages = nextMessages;
+        if (app.activeGiftPreview?.messageId === messageId) {
+            app.closeGiftPreview();
+        }
+        app.rebuildContactMemory(contact);
+        if (state.currentChatId === contact.id) app.renderMessages(true);
+        app.renderChatList();
+        utils.save();
+        app.showToast('消息已删除，对方记忆也同步更新了', 'success', '删除成功');
+    },
+
+    addMessage: (sender, content, type = 'text', targetContact = null, extra = {}) => {
+        const contact = typeof targetContact === 'string'
+            ? app.getContact(targetContact)
+            : (targetContact?.id ? (app.getContact(targetContact.id) || targetContact) : null) || app.getActiveContact();
         if (!contact) return;
-        app.appendMessageToContact(contact, sender, content, type);
+        return app.appendMessageToContact(contact, sender, content, type, extra);
     },
 
     activeGiftPreview: null,
@@ -3250,12 +3635,13 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('gift-open-reply', '', data);
             app.setTyping(false);
-            app.addMessage('ai', app.cleanAiText(data.choices?.[0]?.message?.content || `拆开啦？希望你会喜欢这个${giftName}。`, 60, 1));
+            app.addMessage('ai', app.cleanAiText(data.choices?.[0]?.message?.content || `拆开啦？希望你会喜欢这个${giftName}。`, 60, 1), 'text', contact);
         })
         .catch(() => {
             app.setTyping(false);
-            app.addMessage('ai', `拆开啦？希望你会喜欢这个${giftName}。`);
+            app.addMessage('ai', `拆开啦？希望你会喜欢这个${giftName}。`, 'text', contact);
         });
     },
 
@@ -3265,6 +3651,10 @@ const app = {
 
     buildSystemPrompt: (contact, scene = 'chat', extraNote = '') => {
         let systemContent = (contact.prompt || DEFAULT_PROMPT).replace('{{time}}', utils.fullTime());
+        const contactUserPersona = `${contact?.userPersona || ''}`.trim();
+        if (contactUserPersona) {
+            systemContent += `\n\n[用户在你面前的人设]\n${contactUserPersona}\n你要把用户当作上述身份与关系去互动，称呼和语气保持一致。`;
+        }
         if (contact.importedCard?.firstMessage) {
             systemContent += `\n\n[开场口吻参考]\n${contact.importedCard.firstMessage}`;
         }
@@ -3280,10 +3670,10 @@ const app = {
         const worldMatches = app.matchWorldBookEntries(contact);
         if (worldMatches.length) {
             const worldText = worldMatches.map(entry => {
-                const title = entry.name || (entry.keys || []).join(' / ') || '词条';
-                return `- ${title}: ${entry.content}`;
+                const title = entry.name || (entry.key || []).join(' / ') || `词条${entry.uid || ''}`;
+                return `【${title}】\n${entry.content}`;
             }).join('\n');
-            systemContent += `\n\n[世界书命中]\n${worldText}`;
+            systemContent += `\n\n[世界书规则]\n${worldText}`;
         }
         systemContent += '\n\n[人格表达要求]\n1. 完全以真人口吻聊天，不要出现AI、自我免责声明。\n2. 语气必须贴合你的人设和关系亲密度，允许有情绪、停顿、口头语。\n3. 回复优先表达真实感受，再给出内容，不要机械分点。\n4. 如果对方表达情绪，先共情再回应。\n5. 严禁使用Markdown格式（如 **、#、列表、代码块），只输出自然中文口语。';
         const replyLengthInstruction = app.getReplyLengthInstruction(contact, scene);
@@ -3342,6 +3732,30 @@ const app = {
                 if (parsed && typeof parsed === 'object') return parsed;
             } catch (_) {}
         }
+        const arousalMatch = normalized.match(/"arousal"\s*:\s*(-?\d+(?:\.\d+)?)/);
+        const contentKey = normalized.match(/"content"\s*:\s*"/);
+        if (contentKey || arousalMatch) {
+            let content = '';
+            if (contentKey) {
+                const startIndex = (contentKey.index || 0) + contentKey[0].length;
+                const tail = normalized.slice(startIndex);
+                const boundaryMatch = tail.match(/"\s*,\s*"(?:arousal|reply|text|message|output)"\s*:/);
+                const rawContent = boundaryMatch
+                    ? tail.slice(0, boundaryMatch.index)
+                    : tail.replace(/"\s*}[\s\S]*$/g, '').replace(/"\s*$/g, '');
+                content = rawContent
+                    .replace(/\\"/g, '"')
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\r/g, '\r')
+                    .replace(/\\t/g, '\t')
+                    .replace(/\\\\/g, '\\')
+                    .trim();
+            }
+            return {
+                content,
+                arousal: arousalMatch ? Number(arousalMatch[1]) : undefined
+            };
+        }
         return null;
     },
 
@@ -3385,7 +3799,7 @@ const app = {
         const normalized = app.normalizeModelReplyInput(rawText);
         const parsed = app.extractStructuredReplyPayload(rawText);
         const content = app.cleanAiText(
-            parsed?.content || normalized || fallbackText || '嗯，我在。',
+            (typeof parsed?.content === 'string' && parsed.content.trim() ? parsed.content : '') || normalized || fallbackText || '嗯，我在。',
             0,
             0
         );
@@ -3405,9 +3819,22 @@ const app = {
         return /failed to fetch|networkerror|load failed|ssl|tls|fetch/.test(message);
     },
 
+    logModelResponse: (scene = 'unknown', rawBody = '', data = null, meta = {}) => {
+        const content = typeof data?.choices?.[0]?.message?.content === 'string'
+            ? data.choices[0].message.content
+            : '';
+        console.log(`[AI RAW][${scene}]`, {
+            ...meta,
+            rawBody: typeof rawBody === 'string' ? rawBody : '',
+            content,
+            data
+        });
+    },
+
     requestChatCompletion: async (payload, options = {}) => {
         const retries = Number.isFinite(options.retries) ? options.retries : 2;
         const retryDelayMs = Number.isFinite(options.retryDelayMs) ? options.retryDelayMs : 700;
+        const scene = options.scene || 'chat';
         let lastError = null;
 
         for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -3421,15 +3848,31 @@ const app = {
                     body: JSON.stringify(payload)
                 });
 
-                let data = null;
+                let rawBody = '';
                 try {
-                    data = await res.json();
+                    rawBody = await res.text();
                 } catch (_) {
-                    data = null;
+                    rawBody = '';
                 }
 
+                let data = null;
+                if (rawBody) {
+                    try {
+                        data = JSON.parse(rawBody);
+                    } catch (_) {
+                        data = null;
+                        console.warn(`[AI RAW][${scene}] JSON parse failed`, rawBody);
+                    }
+                }
+
+                app.logModelResponse(scene, rawBody, data, {
+                    status: res.status,
+                    ok: res.ok,
+                    attempt: attempt + 1
+                });
+
                 if (!res.ok) {
-                    const error = new Error(data?.error?.message || data?.message || `请求失败（${res.status}）`);
+                    const error = new Error(data?.error?.message || data?.message || rawBody || `请求失败（${res.status}）`);
                     error.status = res.status;
                     error.payload = data;
                     throw error;
@@ -3438,6 +3881,7 @@ const app = {
                 return data || {};
             } catch (error) {
                 lastError = error;
+                console.warn(`[AI RAW][${scene}] request failed`, error);
                 const status = Number(error?.status) || 0;
                 const shouldRetry = attempt < retries && app.isRetryableApiError(error, status);
                 if (!shouldRetry) break;
@@ -3540,6 +3984,20 @@ const app = {
         return `我认真看了下，你这张图是${featureSummary}。我第一眼会注意到画面的氛围，你当时在现场是什么心情？`;
     },
 
+    getPendingReceiveMessages: (contact) => {
+        if (!contact?.messages?.length) return [];
+        return contact.messages.filter(msg => msg.sender === 'user' && !!msg.awaitingReceive);
+    },
+
+    updateReceiveButton: (contact = null) => {
+        const btn = document.getElementById('receive-btn');
+        if (!btn) return;
+        const active = contact || app.getActiveContact();
+        const pendingCount = active ? app.getPendingReceiveMessages(active).length : 0;
+        btn.innerText = pendingCount > 0 ? `让TA接收(${pendingCount})` : '让TA接收';
+        btn.disabled = pendingCount <= 0 || !!state.typing;
+    },
+
     sendMessage: async () => {
         const contact = app.getActiveContact();
         if (!contact) {
@@ -3552,75 +4010,119 @@ const app = {
         if (!text && !pendingImage) return;
         input.value = '';
         if (pendingImage) {
-            app.addMessage('user', { url: pendingImage.url, text }, 'image');
+            app.addMessage('user', { url: pendingImage.url, text }, 'image', contact, {
+                awaitingReceive: true,
+                queuedAt: Date.now()
+            });
             if (text) app.bumpHeartbeatByMessage(contact, text);
             app.clearPendingChatImage();
-            app.setTyping(true);
-
-            try {
-                const feature = await app.extractImageFeatures(pendingImage.url);
-                const featureSummary = app.buildImageFeatureSummary(feature);
-                const system = app.buildSystemPrompt(contact, 'chat', '用户发来了一张图片，可能还附带了一句文字。请同时结合图片内容和用户附带的话自然回复，不要只评价“好看”。');
-                const promptText = text
-                    ? `用户发来了一张图片，并附带了一句话：“${text}”。请结合图片和这句话一起回复。补充视觉线索：${featureSummary}。请像真人聊天一样回应。`
-                    : `用户发来了一张图片。补充视觉线索：${featureSummary}。请结合图片自然回复，并适度回应图片里的具体内容。`;
-                const multimodalUser = {
-                    role: 'user',
-                    content: [
-                        { type: 'text', text: promptText },
-                        { type: 'image_url', image_url: { url: pendingImage.url } }
-                    ]
-                };
-                const payload = {
-                    model: API_CONFIG.model,
-                    messages: [system, app.getStructuredChatInstruction(), multimodalUser],
-                    temperature: parseFloat(contact.temperature),
-                    stream: false
-                };
-                const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 800 });
-                app.setTyping(false);
-                if (data.choices?.length) {
-                    const structured = app.parseStructuredChatReply(data.choices[0].message.content, contact, text || featureSummary);
-                    const reply = app.ensureImageReplyQuality(structured.content, featureSummary);
-                    app.applyHeartbeatArousal(contact, structured.arousal);
-                    app.addMessage('ai', reply);
-                    app.processMemory(contact);
-                }
-            } catch (e) {
-                app.setTyping(false);
-                app.addMessage('ai', `(图片发过去了，但我这边刚刚没连稳：${e.message})`);
-            }
+            app.updateReceiveButton(contact);
             return;
         }
 
-        app.addMessage('user', text);
+        app.addMessage('user', text, 'text', contact, {
+            awaitingReceive: true,
+            queuedAt: Date.now()
+        });
         app.bumpHeartbeatByMessage(contact, text);
+        app.updateReceiveButton(contact);
+    },
+
+    receivePendingMessages: async () => {
+        const contact = app.getActiveContact();
+        if (!contact) return;
+        const pendingMessages = app.getPendingReceiveMessages(contact);
+        if (!pendingMessages.length) {
+            app.showToast('还没有待接收的消息', 'info', '无需接收');
+            app.updateReceiveButton(contact);
+            return;
+        }
+
+        const pendingLines = pendingMessages.map((msg, idx) => `${idx + 1}. ${app.getHistoryMessageContent(msg) || '[消息]'}`);
+        const combinedUserText = pendingLines.map(line => line.replace(/^\d+\.\s*/, '')).join('；');
+        const processedHistory = contact.messages
+            .filter(msg => !msg.awaitingReceive)
+            .slice(-10)
+            .map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: app.getHistoryMessageContent(msg)
+            }))
+            .filter(msg => msg.content);
+        const latestImageMsg = [...pendingMessages].reverse().find(msg => msg.type === 'image' && app.getImageMessagePayload(msg.content).url);
+
         app.setTyping(true);
-
         try {
-            const history = contact.messages.slice(-12).map(m => ({
-                role: m.sender === 'user' ? 'user' : 'assistant',
-                content: app.getHistoryMessageContent(m)
-            }));
-            const payload = {
-                model: API_CONFIG.model,
-                messages: [app.buildSystemPrompt(contact, 'chat'), app.getStructuredChatInstruction(), ...history],
-                temperature: parseFloat(contact.temperature),
-                stream: false
-            };
+            const system = app.buildSystemPrompt(
+                contact,
+                'chat',
+                '用户这次是攒了多条消息后才让你接收。请你把这批消息合并理解后一次性自然回复，不要逐条编号复读。'
+            );
+            const temperature = parseFloat(contact.temperature);
+            let payload;
+            let featureSummary = '';
 
-            const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 800 });
-            app.setTyping(false);
-            if (data.choices && data.choices.length > 0) {
-                const structured = app.parseStructuredChatReply(data.choices[0].message.content, contact, text);
+            if (latestImageMsg) {
+                const image = app.getImageMessagePayload(latestImageMsg.content);
+                const feature = await app.extractImageFeatures(image.url);
+                featureSummary = app.buildImageFeatureSummary(feature);
+                const batchPrompt = `用户刚点击“让你接收”。以下是用户一次性发来的 ${pendingMessages.length} 条消息：\n${pendingLines.join('\n')}\n其中最新图片的视觉线索：${featureSummary}。请整合回复。`;
+                payload = {
+                    model: API_CONFIG.model,
+                    messages: [
+                        system,
+                        app.getStructuredChatInstruction(),
+                        ...processedHistory,
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: batchPrompt },
+                                { type: 'image_url', image_url: { url: image.url } }
+                            ]
+                        }
+                    ],
+                    temperature,
+                    stream: false
+                };
+            } else {
+                payload = {
+                    model: API_CONFIG.model,
+                    messages: [
+                        system,
+                        app.getStructuredChatInstruction(),
+                        ...processedHistory,
+                        {
+                            role: 'user',
+                            content: `用户刚点击“让你接收”。以下是用户一次性发来的 ${pendingMessages.length} 条消息：\n${pendingLines.join('\n')}\n请整合成一次自然回复。`
+                        }
+                    ],
+                    temperature,
+                    stream: false
+                };
+            }
+
+            const data = await app.requestChatCompletion(payload, { retries: 2, retryDelayMs: 800, scene: 'chat-receive-batch' });
+            if (data.choices?.length) {
+                const structured = app.parseStructuredChatReply(data.choices[0].message.content, contact, combinedUserText);
+                const reply = latestImageMsg ? app.ensureImageReplyQuality(structured.content, featureSummary) : structured.content;
                 app.applyHeartbeatArousal(contact, structured.arousal);
-                app.addMessage('ai', structured.content);
+                const receivedAt = Date.now();
+                pendingMessages.forEach(msg => {
+                    msg.awaitingReceive = false;
+                    msg.receivedAt = receivedAt;
+                });
+                app.addMessage('ai', reply, 'text', contact);
                 app.processMemory(contact);
-                app.maybeSendGiftAfterUserRequest(contact, text);
+                app.maybeSendGiftAfterUserRequest(contact, combinedUserText);
+                utils.save();
+            } else {
+                throw new Error('模型没有返回有效回复');
             }
         } catch (e) {
+            app.showToast(`接收失败：${e.message}`, 'warning', '可再次尝试');
+        } finally {
             app.setTyping(false);
-            app.addMessage('ai', `(网络有点不稳，我刚刚已经帮你重试过了，还是没连上：${e.message})`);
+            if (state.currentChatId === contact.id) app.renderMessages();
+            app.updateReceiveButton(contact);
         }
     },
 
@@ -3631,10 +4133,24 @@ const app = {
         if (contact && state.currentChatId) {
             app.renderChatHeader(contact, isTyping ? '对方正在输入...' : contact.name);
         }
+        app.updateReceiveButton(contact);
     },
 
     showChatContactProfile: () => {
         app.openContactDetail();
+    },
+
+    worldBookEditingContactId: null,
+
+    buildMemoryEntry: (content, type = 'fact', source = 'conversation', date = '') => {
+        const value = `${content || ''}`.trim();
+        if (!value) return null;
+        return {
+            date: date || (source === 'card' ? '角色卡' : '对话记忆'),
+            type,
+            source,
+            content: value
+        };
     },
 
     mergeUniqueTextList: (current = [], additions = [], limit = 8) => {
@@ -3645,6 +4161,46 @@ const app = {
             const existIndex = result.indexOf(value);
             if (existIndex >= 0) result.splice(existIndex, 1);
             result.push(value);
+        });
+        return result.slice(-limit);
+    },
+
+    ensureContactImportedCard: (contact) => {
+        if (!contact) return null;
+        if (!contact.importedCard || typeof contact.importedCard !== 'object') {
+            contact.importedCard = {
+                spec: '',
+                specVersion: '',
+                name: contact.name || '',
+                description: '',
+                personality: '',
+                scenario: '',
+                firstMessage: '',
+                messageExample: '',
+                creatorNotes: '',
+                systemPrompt: '',
+                alternateGreetings: [],
+                worldBook: []
+            };
+        }
+        if (!Array.isArray(contact.importedCard.worldBook)) contact.importedCard.worldBook = [];
+        return contact.importedCard;
+    },
+
+    getContactWorldBook: (contact) => {
+        const importedCard = app.ensureContactImportedCard(contact);
+        return importedCard?.worldBook || [];
+    },
+
+    dedupeMemoryEntries: (items = [], limit = 30) => {
+        const result = [];
+        items.forEach(item => {
+            const entry = item?.content ? item : app.buildMemoryEntry(item);
+            if (!entry?.content) return;
+            const key = `${entry.type || 'fact'}::${entry.content}`;
+            const existingIndex = result.findIndex(current => `${current.type || 'fact'}::${current.content}` === key);
+            if (existingIndex >= 0) result.splice(existingIndex, 1);
+            result.push(entry);
         });
         return result.slice(-limit);
     },
@@ -3784,39 +4340,68 @@ const app = {
         return { personality, preferences, relationship, facts, memoryNotes };
     },
 
+    getBaseTraitsForContact: (contact) => {
+        if (contact?.importedCard) {
+            return app.buildTraitsFromCharacterCard(contact.importedCard);
+        }
+        return { personality: [], preferences: [], relationship: [], facts: [] };
+    },
+
+    getBaseMemoriesForContact: (contact) => {
+        if (contact?.importedCard) {
+            return app.buildMemoriesFromCharacterCard(contact.importedCard);
+        }
+        return [];
+    },
+
+    rebuildContactMemory: (contact) => {
+        if (!contact) return;
+        const baseTraits = app.getBaseTraitsForContact(contact);
+        const baseMemories = app.getBaseMemoriesForContact(contact);
+        const recentUserTexts = (contact.messages || [])
+            .filter(msg => msg.sender === 'user')
+            .slice(-10)
+            .map(msg => app.getHistoryMessageContent(msg).trim())
+            .filter(Boolean);
+
+        const aggregated = { personality: [], preferences: [], relationship: [], facts: [], memoryNotes: [] };
+        recentUserTexts.forEach(text => {
+            const parsed = app.extractLocalMemorySignals(text);
+            aggregated.personality = app.mergeUniqueTextList(aggregated.personality, parsed.personality, 8);
+            aggregated.preferences = app.mergeUniqueTextList(aggregated.preferences, parsed.preferences, 8);
+            aggregated.relationship = app.mergeUniqueTextList(aggregated.relationship, parsed.relationship, 8);
+            aggregated.facts = app.mergeUniqueTextList(aggregated.facts, parsed.facts, 8);
+            aggregated.memoryNotes = app.mergeUniqueTextList(aggregated.memoryNotes, parsed.memoryNotes, 12);
+        });
+
+        contact.traits = {
+            personality: app.mergeUniqueTextList(baseTraits.personality, aggregated.personality, 8),
+            preferences: app.mergeUniqueTextList(baseTraits.preferences, aggregated.preferences, 8),
+            relationship: app.mergeUniqueTextList(baseTraits.relationship, aggregated.relationship, 8),
+            facts: app.mergeUniqueTextList(baseTraits.facts, aggregated.facts, 8)
+        };
+
+        const nextMemories = [
+            ...baseMemories,
+            ...aggregated.memoryNotes.map(note => app.buildMemoryEntry(note, 'insight', 'conversation')),
+            ...aggregated.facts.map(fact => app.buildMemoryEntry(fact, 'fact', 'conversation'))
+        ].filter(Boolean);
+        contact.memories = app.dedupeMemoryEntries(nextMemories, 30);
+    },
+
     processMemory: async (contact) => {
-        if (!contact || !contact.messages?.length) return;
+        if (!contact) return;
         try {
-            const recentUserTexts = (contact.messages || [])
-                .filter(msg => msg.sender === 'user')
-                .slice(-10)
-                .map(msg => app.getHistoryMessageContent(msg).trim())
-                .filter(Boolean);
-            if (!recentUserTexts.length) return;
-
-            const aggregated = { personality: [], preferences: [], relationship: [], facts: [], memoryNotes: [] };
-            recentUserTexts.forEach(text => {
-                const parsed = app.extractLocalMemorySignals(text);
-                aggregated.personality = app.mergeUniqueTextList(aggregated.personality, parsed.personality, 8);
-                aggregated.preferences = app.mergeUniqueTextList(aggregated.preferences, parsed.preferences, 8);
-                aggregated.relationship = app.mergeUniqueTextList(aggregated.relationship, parsed.relationship, 8);
-                aggregated.facts = app.mergeUniqueTextList(aggregated.facts, parsed.facts, 8);
-                aggregated.memoryNotes = app.mergeUniqueTextList(aggregated.memoryNotes, parsed.memoryNotes, 12);
+            const before = JSON.stringify({
+                traits: contact.traits || {},
+                memories: contact.memories || []
             });
-
-            const before = JSON.stringify(contact.traits || {});
-            contact.traits = {
-                personality: app.mergeUniqueTextList(contact.traits?.personality, aggregated.personality, 8),
-                preferences: app.mergeUniqueTextList(contact.traits?.preferences, aggregated.preferences, 8),
-                relationship: app.mergeUniqueTextList(contact.traits?.relationship, aggregated.relationship, 8),
-                facts: app.mergeUniqueTextList(contact.traits?.facts, aggregated.facts, 8)
-            };
-
-            aggregated.memoryNotes.forEach(note => app.pushMemoryRecord(contact, note, 'insight'));
-            aggregated.facts.forEach(fact => app.pushMemoryRecord(contact, fact, 'fact'));
-
-            const after = JSON.stringify(contact.traits || {});
-            if (before !== after || aggregated.memoryNotes.length || aggregated.facts.length) {
+            app.rebuildContactMemory(contact);
+            const after = JSON.stringify({
+                traits: contact.traits || {},
+                memories: contact.memories || []
+            });
+            if (before !== after) {
                 utils.save();
             }
         } catch (e) {
@@ -3828,10 +4413,6 @@ const app = {
     personaEditingContactId: null,
 
     showPersonaSettings: () => {
-        if (!state.contacts.length) {
-            app.showToast('请先添加联系人', 'warning', '先建一个人物');
-            return;
-        }
         const listHtml = state.contacts.map(contact => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f1f1f1;cursor:pointer;" onclick="app.openPersonaEditor('${contact.id}')">
                 <div style="width:48px;height:48px;border-radius:10px;overflow:hidden;background:#eee;flex-shrink:0;">
@@ -3844,8 +4425,26 @@ const app = {
                 <div style="color:#ccc;font-size:18px;">›</div>
             </div>
         `).join('');
-        app.showModal('选择要设置的人物', `<div style="max-height:320px;overflow:auto;">${listHtml}</div>`);
+        const emptyHtml = '<div style="padding:16px 0;color:#9ca3af;font-size:13px;">还没有角色，先新增一个吧。</div>';
+        const html = `
+            <div style="text-align:left;">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0 12px;border-bottom:1px solid #ececec;cursor:pointer;" onclick="app.openAddContactFromPersonaSettings()">
+                    <div style="width:40px;height:40px;border-radius:12px;background:#e8f2ff;color:#2b6ef2;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;">+</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#1f2937;">新增角色</div>
+                        <div style="font-size:12px;color:#6b7280;margin-top:3px;">打开和主页右上角相同的添加面板</div>
+                    </div>
+                </div>
+                <div style="max-height:320px;overflow:auto;">${listHtml || emptyHtml}</div>
+            </div>
+        `;
+        app.showModal('选择要设置的人物', html);
         document.getElementById('modal-confirm').style.display = 'none';
+    },
+
+    openAddContactFromPersonaSettings: () => {
+        app.closeModal();
+        app.showAddContact();
     },
 
     openPersonaEditor: (contactId) => {
@@ -3882,21 +4481,21 @@ const app = {
                     <option value="long" ${contact.replyLength === 'long' ? 'selected' : ''}>偏长</option>
                 </select>
                 <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">自动判断时，TA 会根据情绪和场景自己决定是一句、两句还是三四句。</div>
+                <label>你在TA面前的人设</label>
+                <textarea id="p-user-persona" rows="3" placeholder="例如：我是TA的恋人，表面嘴硬，实际很依赖TA。">${contact.userPersona || ''}</textarea>
+                <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">只对这个联系人生效。和不同人物聊天时，可以是完全不同的你。</div>
                 <label>聊天列表置顶</label>
                 <select id="p-pin" style="margin-bottom:10px;">
                     <option value="off" ${contact.pinned ? '' : 'selected'}>不置顶</option>
                     <option value="on" ${contact.pinned ? 'selected' : ''}>置顶</option>
                 </select>
                 <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">开启后，这个人会固定优先排在聊天列表顶部。</div>
-                <label>每日主动推送</label>
-                <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
-                    <select id="p-daily-enabled" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;">
-                        <option value="on" ${contact.dailyShare?.enabled !== false ? 'selected' : ''}>开启</option>
-                        <option value="off" ${contact.dailyShare?.enabled === false ? 'selected' : ''}>关闭</option>
-                    </select>
-                    <input type="time" id="p-daily-time" value="${contact.dailyShare?.time || '16:00'}" style="flex:1;">
-                </div>
-                <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">到点后，TA 会主动给你发消息，也可能顺手发一条朋友圈。当前先默认每天 16:00。</div>
+                <label>主动说话</label>
+                <select id="p-proactive-enabled" style="margin-bottom:10px;">
+                    <option value="off" ${contact.proactiveChat?.enabled ? '' : 'selected'}>关闭</option>
+                    <option value="on" ${contact.proactiveChat?.enabled ? 'selected' : ''}>开启</option>
+                </select>
+                <div style="font-size:12px;color:#999;line-height:1.45;margin:-4px 0 10px;">开启后，TA 会主动找你聊天。</div>
                 <label>人设 Prompt</label>
                 <div style="margin-bottom:5px">${templateHtml}</div>
                 <textarea id="p-prompt" rows="4">${contact.prompt}</textarea>
@@ -3913,13 +4512,15 @@ const app = {
                 contact.pinned = nextPinned;
                 contact.pinnedAt = nextPinned ? Date.now() : 0;
             }
-            contact.dailyShare = {
-                ...(contact.dailyShare || {}),
-                enabled: document.getElementById('p-daily-enabled').value === 'on',
-                time: document.getElementById('p-daily-time').value || '16:00',
-                topics: contact.dailyShare?.topics || ['news', 'song', 'meme'],
-                lastSentDate: contact.dailyShare?.lastSentDate || ''
+            contact.proactiveChat = {
+                ...(contact.proactiveChat || {}),
+                enabled: document.getElementById('p-proactive-enabled').value === 'on',
+                lastSentDate: contact.proactiveChat?.lastSentDate || '',
+                nextSendAt: Number(contact.proactiveChat?.nextSendAt) || 0
             };
+            if (contact.proactiveChat.enabled) app.ensureProactiveChatSchedule(contact, Date.now(), true);
+            else contact.proactiveChat.nextSendAt = 0;
+            contact.userPersona = (document.getElementById('p-user-persona').value || '').trim();
             contact.prompt = document.getElementById('p-prompt').value || contact.prompt;
             utils.save();
             app.renderChatList();
@@ -3944,8 +4545,8 @@ const app = {
         document.getElementById('new-contact-temp').value = 0.7;
         document.getElementById('new-contact-reply-length').value = 'auto';
         document.getElementById('new-contact-signature').value = '';
-        document.getElementById('new-contact-daily-enabled').value = 'on';
-        document.getElementById('new-contact-daily-time').value = '16:00';
+        document.getElementById('new-contact-user-persona').value = '';
+        document.getElementById('new-contact-proactive-enabled').value = 'off';
         document.getElementById('new-contact-prompt').value = DEFAULT_PROMPT;
         document.getElementById('new-contact-preview').src = 'https://ui-avatars.com/api/?name=New&background=random&color=fff';
         document.getElementById('add-contact-overlay').classList.add('active');
@@ -3956,16 +4557,16 @@ const app = {
         const temperature = parseFloat(document.getElementById('new-contact-temp').value || 0.7);
         const replyLength = document.getElementById('new-contact-reply-length').value || 'auto';
         const signature = document.getElementById('new-contact-signature').value || '今天也想认真和你说话。';
+        const userPersona = (document.getElementById('new-contact-user-persona').value || '').trim();
         const prompt = document.getElementById('new-contact-prompt').value || DEFAULT_PROMPT;
-        const dailyShare = {
-            enabled: document.getElementById('new-contact-daily-enabled').value === 'on',
-            time: document.getElementById('new-contact-daily-time').value || '16:00',
-            topics: ['news', 'song', 'meme'],
-            lastSentDate: ''
+        const proactiveChat = {
+            enabled: document.getElementById('new-contact-proactive-enabled').value === 'on',
+            lastSentDate: '',
+            nextSendAt: 0
         };
-        const contact = app.createContact({ name, temperature, replyLength, signature, prompt, dailyShare });
+        const contact = app.createContact({ name, temperature, replyLength, signature, userPersona, prompt, proactiveChat });
         if (app.tempNewContactAvatar) contact.avatar = app.tempNewContactAvatar;
-        app.reserveTodayDailyShareSlot(contact);
+        if (contact.proactiveChat.enabled) app.ensureProactiveChatSchedule(contact, Date.now(), true);
         state.contacts.unshift(contact);
         state.currentChatId = contact.id;
         utils.save();
@@ -4229,31 +4830,282 @@ const app = {
         const list = Array.isArray(entries)
             ? entries
             : (entries && typeof entries === 'object' ? Object.values(entries) : []);
+        const normalizeKeywords = (value) => {
+            const source = Array.isArray(value)
+                ? value
+                : (typeof value === 'string' ? value.split(/[,，\n]/) : []);
+            return Array.from(new Set(source.map(item => `${item || ''}`.trim()).filter(Boolean)));
+        };
         return list.map((entry, index) => {
-            const primaryKeys = Array.isArray(entry?.keys)
-                ? entry.keys
-                : (typeof entry?.keys === 'string' ? entry.keys.split(',') : []);
-            const secondaryKeys = Array.isArray(entry?.secondary_keys)
-                ? entry.secondary_keys
-                : (typeof entry?.secondary_keys === 'string' ? entry.secondary_keys.split(',') : []);
-            const keys = [...primaryKeys, ...secondaryKeys]
-                .map(item => `${item || ''}`.trim())
-                .filter(Boolean);
+            const primaryKeys = normalizeKeywords(entry?.key ?? entry?.keys ?? entry?.primary_keys);
+            const secondaryKeys = normalizeKeywords(entry?.keysecondary ?? entry?.secondary_keys ?? entry?.secondaryKeys);
             const content = `${entry?.content || entry?.entry || entry?.text || entry?.desc || ''}`.trim();
+            const uid = Number.isFinite(Number(entry?.uid)) ? Number(entry.uid) : index + 1;
+            const depth = Math.max(1, Number(entry?.depth ?? entry?.scanDepth ?? entry?.extensions?.depth ?? 4) || 4);
+            const probability = Math.max(0, Math.min(100, Number(entry?.probability ?? 100) || 100));
             return {
+                uid,
                 id: entry?.uid || entry?.id || `wb-${index}`,
-                name: `${entry?.comment || entry?.name || keys[0] || `词条${index + 1}`}`.trim(),
-                keys,
+                name: `${entry?.comment || entry?.name || primaryKeys[0] || `词条${index + 1}`}`.trim(),
+                comment: `${entry?.comment || entry?.name || ''}`.trim(),
+                key: primaryKeys,
+                keysecondary: secondaryKeys,
                 content,
                 constant: !!entry?.constant,
-                enabled: entry?.enabled !== false
+                selective: entry?.selective !== false,
+                order: Number.isFinite(Number(entry?.order)) ? Number(entry.order) : 100,
+                probability,
+                depth,
+                enabled: entry?.enabled !== false && entry?.disable !== true && entry?.disabled !== true
             };
         }).filter(item => item.content);
     },
 
+    getNextWorldBookUid: (contact) => {
+        const list = app.getContactWorldBook(contact);
+        const maxUid = list.reduce((max, entry) => Math.max(max, Number(entry?.uid) || 0), 0);
+        return maxUid + 1;
+    },
+
+    upsertWorldBookEntries: (contact, entries = []) => {
+        if (!contact) return;
+        const importedCard = app.ensureContactImportedCard(contact);
+        const current = Array.isArray(importedCard.worldBook) ? importedCard.worldBook : [];
+        const nextMap = new Map(current.map(entry => [String(entry.uid || entry.id), entry]));
+        entries.forEach((entry, index) => {
+            const normalizedList = app.normalizeWorldBookEntries([entry]);
+            const normalized = normalizedList[0];
+            if (!normalized) return;
+            const fallbackUid = app.getNextWorldBookUid(contact) + index;
+            normalized.uid = Number.isFinite(Number(normalized.uid)) ? Number(normalized.uid) : fallbackUid;
+            normalized.id = normalized.id || `wb-${normalized.uid}`;
+            nextMap.set(String(normalized.uid), normalized);
+        });
+        importedCard.worldBook = [...nextMap.values()].sort((a, b) => {
+            if ((a.order || 100) !== (b.order || 100)) return (a.order || 100) - (b.order || 100);
+            return (a.uid || 0) - (b.uid || 0);
+        });
+    },
+
+    getWorldBookImportEntries: (payload) => {
+        if (Array.isArray(payload)) return payload;
+        if (!payload || typeof payload !== 'object') return [];
+        return payload.entries || payload.world_book?.entries || payload.lorebook?.entries || payload.data?.entries || payload.worldBook || payload;
+    },
+
+    openWorldBookManager: (contactId = null) => {
+        const contact = app.getContact(contactId || app.contactDetailContactId || state.currentChatId);
+        if (!contact) {
+            app.showToast('请先选择一个人物', 'warning', '还没有目标');
+            return;
+        }
+        app.worldBookEditingContactId = contact.id;
+        const entries = app.getContactWorldBook(contact);
+        const rows = entries.length
+            ? entries.map(entry => {
+                const primary = (entry.key || []).join('、') || '无主关键词';
+                const secondary = (entry.keysecondary || []).join('、');
+                return `
+                    <div style="padding:12px 0;border-bottom:1px solid #f1f1f1;">
+                        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;color:#1f2937;">${entry.name || `词条 ${entry.uid}`}</div>
+                                <div style="font-size:12px;color:#6b7280;margin-top:4px;">uid ${entry.uid} · 关键词 ${primary}${secondary ? ` · 次关键词 ${secondary}` : ''}</div>
+                                <div style="font-size:12px;color:#9ca3af;margin-top:4px;">order ${entry.order || 100} · depth ${entry.depth || 4} · probability ${entry.probability || 100}%${entry.constant ? ' · 常驻' : ''}</div>
+                                <div style="font-size:13px;color:#4b5563;line-height:1.6;margin-top:6px;white-space:pre-line;">${entry.content}</div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+                                <button class="send-btn" style="margin:0;padding:5px 10px;font-size:12px;" onclick="app.openWorldBookEntryEditor('${contact.id}', ${entry.uid})">编辑</button>
+                                <button class="feedback-btn secondary" style="padding:5px 10px;font-size:12px;" onclick="app.deleteWorldBookEntry('${contact.id}', ${entry.uid})">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')
+            : '<div style="font-size:13px;color:#9ca3af;padding:12px 0;">还没有世界书词条，先新增一条或者导入 JSON 吧。</div>';
+        const html = `
+            <div style="text-align:left;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                    <button class="send-btn" style="margin:0;" onclick="app.openWorldBookEntryEditor('${contact.id}')">新增词条</button>
+                    <button class="feedback-btn secondary" style="padding:9px 14px;" onclick="app.triggerWorldBookImport('${contact.id}')">导入 JSON</button>
+                </div>
+                <div style="font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:10px;">这里是 ${contact.name} 的独立世界书。支持 SillyTavern 常见字段：uid、key、keysecondary、content、constant、selective、order、probability、depth。</div>
+                <div style="max-height:340px;overflow:auto;">${rows}</div>
+            </div>
+        `;
+        app.showModal(`${contact.name} 的世界书`, html);
+        document.getElementById('modal-confirm').style.display = 'none';
+    },
+
+    triggerWorldBookImport: (contactId = null) => {
+        app.worldBookEditingContactId = contactId || app.contactDetailContactId || state.currentChatId || null;
+        const input = document.getElementById('worldbook-upload');
+        if (input) {
+            input.value = '';
+            input.click();
+        }
+    },
+
+    handleWorldBookUpload: async (input) => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const contact = app.getContact(app.worldBookEditingContactId || app.contactDetailContactId || state.currentChatId);
+        input.value = '';
+        if (!contact) {
+            app.showToast('没有找到要导入的人物', 'warning', '导入失败');
+            return;
+        }
+        try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            const rawEntries = app.getWorldBookImportEntries(parsed);
+            const entries = app.normalizeWorldBookEntries(rawEntries);
+            if (!entries.length) {
+                app.showFeedbackDialog({
+                    title: '导入失败',
+                    message: '这个 JSON 里没有识别到可用的世界书词条。',
+                    tone: 'warning',
+                    confirmText: '知道了'
+                });
+                return;
+            }
+            app.upsertWorldBookEntries(contact, entries);
+            utils.save();
+            if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
+                app.openContactDetail(contact.id);
+            }
+            app.openWorldBookManager(contact.id);
+            app.showToast(`已导入 ${entries.length} 条世界书`, 'success', '导入成功');
+        } catch (error) {
+            app.showFeedbackDialog({
+                title: '导入失败',
+                message: `JSON 解析失败：${error.message}`,
+                tone: 'danger',
+                confirmText: '知道了'
+            });
+        }
+    },
+
+    openWorldBookEntryEditor: (contactId = null, uid = null) => {
+        const contact = app.getContact(contactId || app.worldBookEditingContactId || app.contactDetailContactId || state.currentChatId);
+        if (!contact) return;
+        app.worldBookEditingContactId = contact.id;
+        const existing = uid != null ? app.getContactWorldBook(contact).find(entry => Number(entry.uid) === Number(uid)) : null;
+        const nextUid = existing?.uid || app.getNextWorldBookUid(contact);
+        const html = `
+            <div style="text-align:left;">
+                <label>uid</label>
+                <input type="number" id="wb-uid" value="${nextUid}">
+                <label>名称 / 注释</label>
+                <input type="text" id="wb-name" value="${existing?.name || existing?.comment || ''}" placeholder="例如：NTR 常识重写">
+                <label>关键词 key（用逗号分隔）</label>
+                <textarea id="wb-key" rows="2" placeholder="例如：出轨, 背德, 常识">${(existing?.key || []).join(', ')}</textarea>
+                <label>次要关键词 keysecondary（可空）</label>
+                <textarea id="wb-keysecondary" rows="2" placeholder="例如：公司, 上司">${(existing?.keysecondary || []).join(', ')}</textarea>
+                <label>content</label>
+                <textarea id="wb-content" rows="7" placeholder="写下世界观规则、常识重写或触发后的行为约束...">${existing?.content || ''}</textarea>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+                    <div>
+                        <label>order</label>
+                        <input type="number" id="wb-order" value="${existing?.order ?? 100}">
+                    </div>
+                    <div>
+                        <label>probability</label>
+                        <input type="number" id="wb-probability" value="${existing?.probability ?? 100}" min="0" max="100">
+                    </div>
+                    <div>
+                        <label>depth</label>
+                        <input type="number" id="wb-depth" value="${existing?.depth ?? 4}" min="1" max="50">
+                    </div>
+                    <div>
+                        <label>模式</label>
+                        <select id="wb-selective" style="margin-bottom:0;">
+                            <option value="true" ${existing?.selective !== false ? 'selected' : ''}>关键词触发</option>
+                            <option value="false" ${existing?.selective === false ? 'selected' : ''}>仅主关键词</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:16px;align-items:center;margin-top:10px;font-size:13px;color:#555;">
+                    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="wb-constant" ${existing?.constant ? 'checked' : ''}> 常驻</label>
+                    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="wb-enabled" ${existing?.enabled !== false ? 'checked' : ''}> 启用</label>
+                </div>
+            </div>
+        `;
+        app.showModal(existing ? `编辑世界书词条` : `新增世界书词条`, html);
+        document.getElementById('modal-confirm').style.display = 'block';
+        document.getElementById('modal-confirm').innerText = existing ? '保存' : '添加';
+        document.getElementById('modal-confirm').onclick = () => app.saveWorldBookEntry(contact.id, existing?.uid || null);
+    },
+
+    saveWorldBookEntry: (contactId, originalUid = null) => {
+        const contact = app.getContact(contactId);
+        if (!contact) return;
+        const uidValue = Number(document.getElementById('wb-uid').value || 0) || app.getNextWorldBookUid(contact);
+        const entry = {
+            uid: uidValue,
+            id: `wb-${uidValue}`,
+            name: (document.getElementById('wb-name').value || '').trim() || `词条 ${uidValue}`,
+            comment: (document.getElementById('wb-name').value || '').trim(),
+            key: (document.getElementById('wb-key').value || '').split(/[,，\n]/).map(item => item.trim()).filter(Boolean),
+            keysecondary: (document.getElementById('wb-keysecondary').value || '').split(/[,，\n]/).map(item => item.trim()).filter(Boolean),
+            content: (document.getElementById('wb-content').value || '').trim(),
+            constant: !!document.getElementById('wb-constant').checked,
+            selective: document.getElementById('wb-selective').value !== 'false',
+            order: Number(document.getElementById('wb-order').value || 100) || 100,
+            probability: Math.max(0, Math.min(100, Number(document.getElementById('wb-probability').value || 100) || 100)),
+            depth: Math.max(1, Number(document.getElementById('wb-depth').value || 4) || 4),
+            enabled: !!document.getElementById('wb-enabled').checked
+        };
+        if (!entry.key.length) {
+            app.showToast('至少填一个主关键词', 'warning', '还不能保存');
+            return;
+        }
+        if (!entry.content) {
+            app.showToast('content 不能为空', 'warning', '还不能保存');
+            return;
+        }
+        const importedCard = app.ensureContactImportedCard(contact);
+        importedCard.worldBook = (importedCard.worldBook || []).filter(item => Number(item.uid) !== Number(originalUid) && Number(item.uid) !== Number(entry.uid));
+        importedCard.worldBook.push(entry);
+        importedCard.worldBook.sort((a, b) => {
+            if ((a.order || 100) !== (b.order || 100)) return (a.order || 100) - (b.order || 100);
+            return (a.uid || 0) - (b.uid || 0);
+        });
+        utils.save();
+        if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
+            app.openContactDetail(contact.id);
+        }
+        app.openWorldBookManager(contact.id);
+        app.showToast('世界书词条已保存', 'success', '保存成功');
+    },
+
+    deleteWorldBookEntry: (contactId, uid) => {
+        const contact = app.getContact(contactId || app.worldBookEditingContactId || app.contactDetailContactId || state.currentChatId);
+        if (!contact) return;
+        const entry = app.getContactWorldBook(contact).find(item => Number(item.uid) === Number(uid));
+        if (!entry) return;
+        app.showFeedbackDialog({
+            title: '删除世界书词条？',
+            message: `删除后，${contact.name} 将不再使用“${entry.name || `词条 ${entry.uid}`}”这条规则。`,
+            tone: 'danger',
+            confirmText: '删除',
+            cancelText: '取消',
+            onConfirm: () => {
+                const importedCard = app.ensureContactImportedCard(contact);
+                importedCard.worldBook = (importedCard.worldBook || []).filter(item => Number(item.uid) !== Number(uid));
+                utils.save();
+                if (app.contactDetailOpen && app.contactDetailContactId === contact.id) {
+                    app.openContactDetail(contact.id);
+                }
+                app.openWorldBookManager(contact.id);
+                app.showToast('世界书词条已删除', 'success', '删除成功');
+            }
+        });
+    },
+
     normalizeCharacterCardData: (rawCard) => {
         const root = rawCard?.data && typeof rawCard.data === 'object' ? rawCard.data : rawCard;
-        const worldBookRaw = root?.character_book?.entries || root?.world_book?.entries || root?.lorebook?.entries || rawCard?.character_book?.entries || [];
+        const worldBookRaw = root?.character_book?.entries || root?.world_book?.entries || root?.lorebook?.entries || root?.entries || rawCard?.character_book?.entries || rawCard?.entries || [];
         return {
             spec: rawCard?.spec || root?.spec || '',
             specVersion: rawCard?.spec_version || root?.spec_version || '',
@@ -4325,7 +5177,9 @@ const app = {
             ...app.splitCardPhrases(card?.personality, 3),
             ...app.splitCardPhrases(card?.scenario, 2)
         ].slice(0, 8);
-        return items.map(content => ({ date: utils.fullTime(), content }));
+        return items
+            .map(content => app.buildMemoryEntry(content, 'card', 'card'))
+            .filter(Boolean);
     },
 
     composePromptFromCharacterCard: (card) => {
@@ -4346,16 +5200,30 @@ const app = {
     matchWorldBookEntries: (contact) => {
         const worldBook = contact?.importedCard?.worldBook || [];
         if (!worldBook.length) return [];
-        const recentUserText = (contact.messages || [])
-            .filter(msg => msg.sender === 'user')
-            .slice(-8)
-            .map(msg => app.getHistoryMessageContent(msg).toLowerCase())
-            .join('\n');
-        return worldBook.filter(entry => {
+        return [...worldBook].filter(entry => {
             if (!entry.enabled) return false;
             if (entry.constant) return true;
-            return (entry.keys || []).some(key => key && recentUserText.includes(key.toLowerCase()));
-        }).slice(0, 4);
+            const depth = Math.max(1, Number(entry.depth) || 4);
+            const scanText = (contact.messages || [])
+                .slice(-depth)
+                .map(msg => app.getHistoryMessageContent(msg).toLowerCase())
+                .join('\n');
+            const primaryKeys = Array.isArray(entry.key) ? entry.key : [];
+            const secondaryKeys = Array.isArray(entry.keysecondary) ? entry.keysecondary : [];
+            if (!primaryKeys.length) return false;
+            const primaryHit = primaryKeys.some(key => key && scanText.includes(key.toLowerCase()));
+            if (!primaryHit) return false;
+            if (entry.selective !== false && secondaryKeys.length) {
+                const secondaryHit = secondaryKeys.some(key => key && scanText.includes(key.toLowerCase()));
+                if (!secondaryHit) return false;
+            }
+            if (Number(entry.probability) < 100 && Math.random() * 100 > Number(entry.probability)) return false;
+            return true;
+        }).sort((a, b) => {
+            if (!!a.constant !== !!b.constant) return a.constant ? -1 : 1;
+            if ((a.order || 100) !== (b.order || 100)) return (a.order || 100) - (b.order || 100);
+            return (a.uid || 0) - (b.uid || 0);
+        }).slice(0, 8);
     },
 
     handleCharacterCardUpload: async (input) => {
@@ -4400,9 +5268,8 @@ const app = {
                 memories,
                 messages,
                 importedCard: card,
-                dailyShare: { enabled: true, time: '16:00', topics: ['news', 'song', 'meme'], lastSentDate: '' }
+                proactiveChat: { enabled: false, lastSentDate: '', nextSendAt: 0 }
             });
-            app.reserveTodayDailyShareSlot(contact);
             state.contacts.unshift(contact);
             state.currentChatId = contact.id;
             utils.save();
@@ -4513,6 +5380,11 @@ const app = {
     toggleActionSheet: () => {
         document.getElementById('action-sheet').classList.toggle('active');
         document.getElementById('action-overlay').classList.toggle('active');
+    },
+
+    openGiftListFromChat: () => {
+        app.toggleActionSheet();
+        app.toggleGiftList();
     },
 
     sendImage: () => { app.toggleActionSheet(); document.getElementById('chat-image-upload').click(); },
@@ -4694,12 +5566,12 @@ const app = {
         app.updateProfileUI();
         app.closePaymentPad();
         app.closeOverlay('redpacket-overlay');
-        app.addMessage('user', `${amount.toFixed(2)}`, 'redpacket');
-        app.setTyping(true);
         const contact = app.getActiveContact();
+        app.addMessage('user', `${amount.toFixed(2)}`, 'redpacket', contact);
+        app.setTyping(true);
         if (!contact) {
             app.setTyping(false);
-            app.addMessage('ai', `我收到了¥${amount.toFixed(2)}，谢谢你。`);
+            app.addMessage('ai', `我收到了¥${amount.toFixed(2)}，谢谢你。`, 'text', contact);
             return;
         }
         const system = app.buildSystemPrompt(contact, 'chat', `用户刚确认支付密码后给你转账¥${amount.toFixed(2)}。请自然回应，但不要提及他的账户余额、钱包系统或支付风控。`);
@@ -4711,31 +5583,36 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('transfer-reply', '', data);
             app.setTyping(false);
-            app.addMessage('ai', app.cleanAiText(data.choices?.[0]?.message?.content || `收到¥${amount.toFixed(2)}了，我会好好记住这份心意。`, 76, app.getReplySentenceLimit(contact, 'chat')));
+            app.addMessage('ai', app.cleanAiText(data.choices?.[0]?.message?.content || `收到¥${amount.toFixed(2)}了，我会好好记住这份心意。`, 76, app.getReplySentenceLimit(contact, 'chat')), 'text', contact);
             app.processMemory(contact);
         })
         .catch(() => {
             app.setTyping(false);
-            app.addMessage('ai', `收到¥${amount.toFixed(2)}了，我会好好记住这份心意。`);
+            app.addMessage('ai', `收到¥${amount.toFixed(2)}了，我会好好记住这份心意。`, 'text', contact);
         });
     },
 
     startCall: (type) => {
         app.toggleActionSheet();
+        const contact = app.getActiveContact();
         const icon = type === 'video' ? '📹' : '📞';
-        app.addMessage('user', `发起${type === 'video' ? '视频' : '语音'}通话`, 'text');
+        app.addMessage('user', `发起${type === 'video' ? '视频' : '语音'}通话`, 'text', contact);
         app.setTyping(true);
-        setTimeout(() => { app.setTyping(false); app.addMessage('ai', `${icon} 通话已接通`); }, 1200);
+        setTimeout(() => { app.setTyping(false); app.addMessage('ai', `${icon} 通话已接通`, 'text', contact); }, 1200);
     },
 
     orderFood: () => { app.toggleActionSheet(); document.getElementById('food-overlay').classList.add('active'); },
     confirmFood: (name, icon, action) => {
         app.closeOverlay('food-overlay');
-        app.addMessage('user', `${icon}|${name}|${action}`, 'food');
-        app.setTyping(true);
         const contact = app.getActiveContact();
-        if (!contact) return;
+        app.addMessage('user', `${icon}|${name}|${action}`, 'food', contact);
+        app.setTyping(true);
+        if (!contact) {
+            app.setTyping(false);
+            return;
+        }
         const system = app.buildSystemPrompt(contact, 'chat', `用户刚分享了食物(${name})，请表现出很想${action}的样子，或者评价一下这个食物。`);
         const history = contact.messages.slice(-8).map(m => ({
             role: m.sender === 'user' ? 'user' : 'assistant',
@@ -4748,13 +5625,14 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('food-reply', '', data);
             app.setTyping(false);
             if (data.choices) {
-                app.addMessage('ai', app.cleanAiText(data.choices[0].message.content, 80, app.getReplySentenceLimit(contact, 'chat')));
+                app.addMessage('ai', app.cleanAiText(data.choices[0].message.content, 80, app.getReplySentenceLimit(contact, 'chat')), 'text', contact);
                 app.processMemory(contact);
             }
         })
-        .catch(() => { app.setTyping(false); app.addMessage('ai', '(网络卡顿了...)'); });
+        .catch(() => { app.setTyping(false); app.addMessage('ai', '(网络卡顿了...)', 'text', contact); });
     },
 
     // 朋友圈逻辑
@@ -4786,22 +5664,26 @@ const app = {
             const div = document.createElement('div');
             div.className = 'moment-item';
             const textHtml = m.text ? `<div class="moment-text">${m.text}</div>` : '';
-            const imageHtml = m.image ? `<img class="moment-photo" src="${m.image}" alt="朋友圈图片">` : '';
+            const imageHtml = m.image ? `<img class="moment-photo" src="${m.image}" alt="朋友圈图片" onclick="app.previewMomentImageByEvent(event)">` : '';
             const commentsHtml = (m.comments || []).map(c => {
                 const isReplyMe = !!c.isReplyToUser;
                 const tag = isReplyMe ? '<span class="moment-comment-tag">回复你</span>' : '';
                 const pendingStyle = c.pending ? 'opacity:0.7;' : '';
-                return `<div class="moment-comment-row ${isReplyMe ? 'reply-me' : ''}" style="${pendingStyle}">${tag}<span class="moment-comment-user">${c.user}</span>：${c.text}</div>`;
+                const canReply = !c.pending && c.user && c.user !== state.user.name;
+                const replyAction = canReply
+                    ? `<span class="moment-comment-reply-btn" onclick="app.prepareMomentReply('${m.id}', '${c.id}', 'feed')">回复</span>`
+                    : '';
+                return `<div class="moment-comment-row ${isReplyMe ? 'reply-me' : ''}" style="${pendingStyle}">${tag}<span class="moment-comment-user">${c.user}</span>：${c.text}${replyAction}</div>`;
             }).join('');
             const commentAction = m.ownerType === 'user'
-                ? `<div class="moment-btn" onclick="app.commentUserMomentByAi('${m.id}')">🤖 让TA评论</div>`
+                ? `<div class="moment-btn" onclick="app.showCommentBox('${m.id}')">💬 评论</div><div class="moment-btn" onclick="app.commentUserMomentByAi('${m.id}')">🤖 让TA评论</div>`
                 : `<div class="moment-btn" onclick="app.showCommentBox('${m.id}')">💬 评论</div>`;
-            const inputBox = m.ownerType === 'user'
-                ? ''
-                : `<div class="comment-input-box" id="comment-box-${m.id}">
-                        <input type="text" id="comment-input-${m.id}" placeholder="写点什么..." style="flex:1; padding:6px;">
-                        <button class="send-btn" style="margin:0;" onclick="app.submitComment('${m.id}')">发送</button>
-                   </div>`;
+            const inputBox = `<div class="comment-input-box" id="comment-box-${m.id}">
+                    <input type="text" id="comment-input-${m.id}" placeholder="写点什么..." style="flex:1; padding:6px;">
+                    <button class="send-btn" style="margin:0;" onclick="app.submitComment('${m.id}')">发送</button>
+               </div>`;
+            const likeNames = app.getMomentLikeNames(m);
+            const likeListHtml = likeNames.length ? `<div class="moment-like-list">❤️ ${likeNames.join('、')}</div>` : '';
             div.innerHTML = `
                 <div class="moment-avatar" style="background:${m.contactAvatar ? 'transparent' : '#eee'};overflow:hidden;">${m.contactAvatar ? `<img src="${m.contactAvatar}" style="width:100%;height:100%;object-fit:cover">` : ''}</div>
                 <div class="moment-content">
@@ -4815,6 +5697,7 @@ const app = {
                         </div>
                         <span style="color:#999;font-size:12px;">${app.formatMomentTime(m.createdAt, m.time || '')}</span>
                     </div>
+                    ${likeListHtml}
                     ${inputBox}
                     <div class="moment-comments" id="comments-${m.id}" style="${commentsHtml ? '' : 'display:none'}">${commentsHtml}</div>
                 </div>
@@ -4836,57 +5719,186 @@ const app = {
         return null;
     },
 
+    refreshMomentViews: () => {
+        app.renderMoments();
+        if (app.contactMomentsOpen) {
+            const detailContact = app.getContact(app.contactDetailContactId);
+            if (detailContact) app.renderContactMoments(detailContact);
+        }
+    },
+
+    pickRandomContacts: (contacts = [], count = 0) => {
+        const source = Array.isArray(contacts) ? [...contacts] : [];
+        for (let i = source.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [source[i], source[j]] = [source[j], source[i]];
+        }
+        return source.slice(0, Math.max(0, count));
+    },
+
+    randomizeUserMomentLikes: (moment) => {
+        if (!moment) return;
+        const contacts = state.contacts || [];
+        if (!contacts.length) {
+            moment.likedBy = [];
+            app.syncUserMomentLikeStats(moment);
+            return;
+        }
+        const maxLikes = Math.min(contacts.length, 5);
+        const likeCount = Math.random() < 0.18 ? 0 : app.randomInt(1, maxLikes);
+        const picked = app.pickRandomContacts(contacts, likeCount);
+        moment.likedBy = picked.map(c => c.id);
+        app.syncUserMomentLikeStats(moment);
+    },
+
+    pickMomentCommentContact: (moment, preferredContactId = '') => {
+        if (preferredContactId) {
+            const direct = app.getContact(preferredContactId);
+            if (direct) return direct;
+        }
+        const contacts = state.contacts || [];
+        if (!contacts.length) return null;
+        const alreadyCommented = new Set((moment?.comments || []).map(c => c.contactId || c.autoFrom).filter(Boolean));
+        const freshPool = contacts.filter(c => !alreadyCommented.has(c.id));
+        const pool = freshPool.length ? freshPool : contacts;
+        return pool[Math.floor(Math.random() * pool.length)] || null;
+    },
+
+    prepareMomentReply: (momentId, commentId, scope = 'feed') => {
+        const res = app.findMoment(momentId);
+        if (!res) return;
+        const comment = (res.moment?.comments || []).find(c => c.id === commentId);
+        if (!comment || comment.pending) return;
+        const matchedById = comment.contactId ? app.getContact(comment.contactId) : null;
+        const matchedByName = matchedById ? null : (state.contacts || []).find(c => c.name === comment.user);
+        app.momentReplyTargets[momentId] = {
+            commentId: comment.id,
+            user: comment.user || 'TA',
+            contactId: matchedById?.id || matchedByName?.id || ''
+        };
+        const boxIds = scope === 'contact'
+            ? [`contact-comment-box-${momentId}`, `comment-box-${momentId}`]
+            : [`comment-box-${momentId}`, `contact-comment-box-${momentId}`];
+        const inputIds = scope === 'contact'
+            ? [`contact-comment-input-${momentId}`, `comment-input-${momentId}`]
+            : [`comment-input-${momentId}`, `contact-comment-input-${momentId}`];
+        const box = boxIds.map(domId => document.getElementById(domId)).find(Boolean);
+        const input = inputIds.map(domId => document.getElementById(domId)).find(Boolean);
+        if (box) box.classList.add('active');
+        if (input) {
+            input.placeholder = `回复 ${comment.user}...`;
+            input.focus();
+        }
+    },
+
+    startUserMomentConversationReply: (moment, userComment, replyTarget = null) => {
+        if (!moment) return;
+        const targetContact = app.pickMomentCommentContact(moment, replyTarget?.contactId || '');
+        if (!targetContact) return;
+        const pendingId = utils.id('reply');
+        moment.comments = moment.comments || [];
+        moment.comments.push({
+            id: pendingId,
+            user: targetContact.name,
+            text: `回复@${state.user.name}：正在输入...`,
+            isReplyToUser: true,
+            pending: true,
+            autoFrom: targetContact.id,
+            contactId: targetContact.id
+        });
+        utils.save();
+        app.refreshMomentViews();
+        app.generateUserMomentReply(targetContact, moment, userComment, pendingId, replyTarget);
+    },
+
     toggleLike: (id) => {
         const res = app.findMoment(id);
         if (!res) return;
-        const { moment } = res;
+        const { moment, ownerType } = res;
         moment.liked = !moment.liked;
-        moment.likes = Math.max(0, (moment.likes || 0) + (moment.liked ? 1 : -1));
+        if (ownerType === 'user') {
+            app.syncUserMomentLikeStats(moment);
+        } else {
+            moment.likes = Math.max(0, (moment.likes || 0) + (moment.liked ? 1 : -1));
+        }
         utils.save();
-        app.renderMoments();
+        app.refreshMomentViews();
     },
 
-    showCommentBox: (id) => {
-        const box = document.getElementById(`comment-box-${id}`);
+    showCommentBox: (id, scope = 'feed') => {
+        const preferredIds = scope === 'contact'
+            ? [`contact-comment-box-${id}`, `comment-box-${id}`]
+            : [`comment-box-${id}`, `contact-comment-box-${id}`];
+        const box = preferredIds.map(domId => document.getElementById(domId)).find(Boolean);
         if (box) box.classList.toggle('active');
     },
 
-    submitComment: (id) => {
+    submitComment: (id, scope = 'feed') => {
         const res = app.findMoment(id);
         if (!res) return;
-        if (res.ownerType === 'user') return;
-        const { contact, moment } = res;
-        const input = document.getElementById(`comment-input-${id}`);
-        const text = input.value.trim();
-        if (!text) return;
+        const { contact, moment, ownerType } = res;
+        const preferredIds = scope === 'contact'
+            ? [`contact-comment-input-${id}`, `comment-input-${id}`]
+            : [`comment-input-${id}`, `contact-comment-input-${id}`];
+        const input = preferredIds.map(domId => document.getElementById(domId)).find(Boolean);
+        if (!input) return;
+        const rawText = input.value.trim();
+        if (!rawText) return;
+        const replyTarget = app.momentReplyTargets[id] || null;
+        const text = replyTarget?.user ? `回复@${replyTarget.user}：${rawText}` : rawText;
         moment.comments = moment.comments || [];
-        moment.comments.push({ user: state.user.name, text });
-        const pendingId = utils.id('reply');
-        moment.comments.push({ id: pendingId, user: contact.name, text: `回复@${state.user.name}：正在输入...`, isReplyToUser: true, pending: true });
+        moment.comments.push({
+            id: utils.id('cmt'),
+            user: state.user.name,
+            text,
+            contactId: '',
+            replyToCommentId: replyTarget?.commentId || '',
+            replyToUser: replyTarget?.user || ''
+        });
         input.value = '';
+        input.placeholder = '写点什么...';
+        delete app.momentReplyTargets[id];
+
+        if (ownerType === 'user') {
+            utils.save();
+            app.refreshMomentViews();
+            app.startUserMomentConversationReply(moment, rawText, replyTarget);
+            return;
+        }
+
+        const pendingId = utils.id('reply');
+        moment.comments.push({
+            id: pendingId,
+            user: contact.name,
+            text: `回复@${state.user.name}：正在输入...`,
+            isReplyToUser: true,
+            pending: true,
+            contactId: contact.id
+        });
         utils.save();
-        app.renderMoments();
-        app.generateMomentReply(contact, moment, text, pendingId);
+        app.refreshMomentViews();
+        app.generateMomentReply(contact, moment, text, pendingId, replyTarget);
     },
 
-    generateMomentReply: (contact, moment, userComment, pendingId) => {
+    generateMomentReply: (contact, moment, userComment, pendingId, replyTarget = null) => {
         const system = app.buildSystemPrompt(
             contact,
             'moments',
             `你要回复用户在朋友圈的评论，必须结合朋友圈正文、用户评论和你的人设来回答。尽量拟人，像真实好友留言。`
         );
+        const replyHint = replyTarget?.user ? `\n这条评论是在回复 ${replyTarget.user}。` : '';
         const hasImage = !!moment.image;
         const userMsg = hasImage
             ? {
                 role: 'user',
                 content: [
-                    { type: 'text', text: `朋友圈文字: ${moment.text || '（无文字）'}\n用户评论: ${userComment}\n请结合图文内容回复给${state.user.name}，一句到两句。` },
+                    { type: 'text', text: `朋友圈文字: ${moment.text || '（无文字）'}\n用户评论: ${userComment}${replyHint}\n请结合图文内容回复给${state.user.name}，一句到两句。` },
                     { type: 'image_url', image_url: { url: moment.image } }
                 ]
             }
             : {
                 role: 'user',
-                content: `朋友圈内容: ${moment.text || '（无文字）'}\n用户评论: ${userComment}\n请直接回复给${state.user.name}，一句到两句。`
+                content: `朋友圈内容: ${moment.text || '（无文字）'}\n用户评论: ${userComment}${replyHint}\n请直接回复给${state.user.name}，一句到两句。`
             };
         fetch(API_CONFIG.url, {
             method: 'POST',
@@ -4895,23 +5907,24 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('moment-reply-to-user-comment', '', data);
             let reply = app.cleanAiText(data.choices?.[0]?.message?.content || '收到啦～', 56, 1);
             const replyPrefix = `回复@${state.user.name}：`;
             if (!reply.startsWith(replyPrefix)) reply = `${replyPrefix}${reply}`;
-            const nextComment = { id: pendingId, user: contact.name, text: reply, isReplyToUser: true };
+            const nextComment = { id: pendingId, user: contact.name, text: reply, isReplyToUser: true, contactId: contact.id };
             const pendingIndex = moment.comments.findIndex(c => c.id === pendingId);
             if (pendingIndex >= 0) moment.comments[pendingIndex] = nextComment;
             else moment.comments.push(nextComment);
             utils.save();
-            app.renderMoments();
+            app.refreshMomentViews();
         })
         .catch(() => {
-            const fallback = { id: pendingId, user: contact.name, text: `回复@${state.user.name}：看到啦，谢谢评论！`, isReplyToUser: true };
+            const fallback = { id: pendingId, user: contact.name, text: `回复@${state.user.name}：看到啦，谢谢评论！`, isReplyToUser: true, contactId: contact.id };
             const pendingIndex = moment.comments.findIndex(c => c.id === pendingId);
             if (pendingIndex >= 0) moment.comments[pendingIndex] = fallback;
             else moment.comments.push(fallback);
             utils.save();
-            app.renderMoments();
+            app.refreshMomentViews();
         });
     },
 
@@ -4943,7 +5956,7 @@ const app = {
             const img = document.getElementById('moment-draft-image');
             if (img) img.src = base64;
             if (wrap) wrap.classList.add('active');
-        });
+        }, 960, 0.9);
     },
 
     confirmPublishUserMoment: () => {
@@ -4962,6 +5975,7 @@ const app = {
             createdAt: Date.now(),
             time: '刚刚',
             likes: 0,
+            likedBy: [],
             liked: false,
             comments: []
         };
@@ -4970,21 +5984,38 @@ const app = {
         document.getElementById('moment-image-upload').value = '';
         utils.save();
         app.closeModal();
-        app.renderMoments();
-        setTimeout(() => app.commentUserMomentByAi(moment.id), 800);
+        app.refreshMomentViews();
+        setTimeout(() => app.seedUserMomentEngagement(moment.id), app.randomInt(650, 1400));
     },
 
-    commentUserMomentByAi: (momentId) => {
+    seedUserMomentEngagement: (momentId) => {
         const moment = (state.userMoments || []).find(m => m.id === momentId);
-        const contact = app.getActiveContact() || state.contacts[0];
+        if (!moment) return;
+        app.randomizeUserMomentLikes(moment);
+        utils.save();
+        app.refreshMomentViews();
+        setTimeout(() => app.commentUserMomentByAi(momentId), app.randomInt(480, 1100));
+    },
+
+    commentUserMomentByAi: (momentId, preferredContactId = '') => {
+        const moment = (state.userMoments || []).find(m => m.id === momentId);
+        const contact = app.pickMomentCommentContact(moment, preferredContactId);
         if (!moment || !contact) return;
         moment.comments = moment.comments || [];
-        if (moment.comments.some(c => c.autoFrom === contact.id)) return;
+        if (!Array.isArray(moment.likedBy) || !moment.likedBy.length) app.randomizeUserMomentLikes(moment);
 
         const pendingId = utils.id('reply');
-        moment.comments.push({ id: pendingId, user: contact.name, text: `回复@${state.user.name}：正在输入...`, isReplyToUser: true, pending: true, autoFrom: contact.id });
+        moment.comments.push({
+            id: pendingId,
+            user: contact.name,
+            text: `回复@${state.user.name}：正在输入...`,
+            isReplyToUser: true,
+            pending: true,
+            autoFrom: contact.id,
+            contactId: contact.id
+        });
         utils.save();
-        app.renderMoments();
+        app.refreshMomentViews();
 
         const system = app.buildSystemPrompt(
             contact,
@@ -5008,23 +6039,76 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('moment-comment-on-user-post', '', data);
             let reply = app.cleanAiText(data.choices?.[0]?.message?.content || '这条状态我很喜欢。', 56, 1);
             const prefix = `回复@${state.user.name}：`;
             if (!reply.startsWith(prefix)) reply = `${prefix}${reply}`;
             const idx = moment.comments.findIndex(c => c.id === pendingId);
-            const finalComment = { id: pendingId, user: contact.name, text: reply, isReplyToUser: true, autoFrom: contact.id };
+            const finalComment = { id: pendingId, user: contact.name, text: reply, isReplyToUser: true, autoFrom: contact.id, contactId: contact.id };
             if (idx >= 0) moment.comments[idx] = finalComment;
             else moment.comments.push(finalComment);
             utils.save();
-            app.renderMoments();
+            app.refreshMomentViews();
         })
         .catch(() => {
             const idx = moment.comments.findIndex(c => c.id === pendingId);
-            const finalComment = { id: pendingId, user: contact.name, text: `回复@${state.user.name}：这条很你，我一看就懂你现在的心情。`, isReplyToUser: true, autoFrom: contact.id };
+            const finalComment = { id: pendingId, user: contact.name, text: `回复@${state.user.name}：这条很你，我一看就懂你现在的心情。`, isReplyToUser: true, autoFrom: contact.id, contactId: contact.id };
             if (idx >= 0) moment.comments[idx] = finalComment;
             else moment.comments.push(finalComment);
             utils.save();
-            app.renderMoments();
+            app.refreshMomentViews();
+        });
+    },
+
+    generateUserMomentReply: (contact, moment, userComment, pendingId, replyTarget = null) => {
+        if (!contact || !moment) return;
+        const system = app.buildSystemPrompt(
+            contact,
+            'moments',
+            `你正在${state.user.name}的朋友圈评论区继续对话，语气贴合你的人设，像真人聊天，不要写成公告。`
+        );
+        const recentThread = (moment.comments || [])
+            .filter(c => !c.pending)
+            .slice(-6)
+            .map(c => `${c.user}：${c.text}`)
+            .join('\n');
+        const replyHint = replyTarget?.user ? `你这条是在接 ${replyTarget.user} 的留言。` : '这条是自然接话。';
+        const hasImage = !!moment.image;
+        const textPrompt = `朋友圈文字：${moment.text || '（无文字）'}\n最近评论：${recentThread || '（暂无）'}\n${state.user.name}刚发言：${userComment}\n${replyHint}\n请回复给${state.user.name}，一句到两句。`;
+        const userMsg = hasImage
+            ? {
+                role: 'user',
+                content: [
+                    { type: 'text', text: textPrompt },
+                    { type: 'image_url', image_url: { url: moment.image } }
+                ]
+            }
+            : { role: 'user', content: textPrompt };
+        fetch(API_CONFIG.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_CONFIG.key}` },
+            body: JSON.stringify({ model: API_CONFIG.model, messages: [system, userMsg], temperature: contact.temperature, stream: false })
+        })
+        .then(res => res.json())
+        .then(data => {
+            app.logModelResponse('moment-thread-reply', '', data);
+            let reply = app.cleanAiText(data.choices?.[0]?.message?.content || '我在呢，继续聊。', 72, 2);
+            const prefix = `回复@${state.user.name}：`;
+            if (!reply.startsWith(prefix)) reply = `${prefix}${reply}`;
+            const idx = moment.comments.findIndex(c => c.id === pendingId);
+            const finalComment = { id: pendingId, user: contact.name, text: reply, isReplyToUser: true, autoFrom: contact.id, contactId: contact.id };
+            if (idx >= 0) moment.comments[idx] = finalComment;
+            else moment.comments.push(finalComment);
+            utils.save();
+            app.refreshMomentViews();
+        })
+        .catch(() => {
+            const idx = moment.comments.findIndex(c => c.id === pendingId);
+            const finalComment = { id: pendingId, user: contact.name, text: `回复@${state.user.name}：我懂你这个点，继续说，我听着。`, isReplyToUser: true, autoFrom: contact.id, contactId: contact.id };
+            if (idx >= 0) moment.comments[idx] = finalComment;
+            else moment.comments.push(finalComment);
+            utils.save();
+            app.refreshMomentViews();
         });
     },
 
@@ -5053,6 +6137,7 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('ai-moment-post', '', data);
             const text = app.cleanAiText(data.choices?.[0]?.message?.content || fallback, 44, 1);
             app.addMomentToContact(contact, text, { likes: Math.floor(Math.random() * 3) });
             app.recordAutoMomentPosted(contact, Date.now(), !manual);
@@ -5144,7 +6229,7 @@ const app = {
         if (!contact) return;
         app.closeModal();
         const safeNote = (note || '').replace(/\|/g, '｜');
-        app.addMessage('user', `${emoji}|${name}|${safeNote}|to-ai`, 'gift');
+        app.addMessage('user', `${emoji}|${name}|${safeNote}|to-ai`, 'gift', contact);
         contact.giftHistory.push({ from: 'user', to: contact.name, name, emoji, note: safeNote, time: Date.now() });
         utils.save();
         app.updateProfileUI();
@@ -5159,13 +6244,14 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('gift-thanks', '', data);
             app.setTyping(false);
             const reply = app.cleanAiText(data.choices?.[0]?.message?.content || '这个礼物也太戳我了，谢谢你。', 72, app.getReplySentenceLimit(contact, 'chat'));
-            app.addMessage('ai', reply);
+            app.addMessage('ai', reply, 'text', contact);
         })
         .catch(() => {
             app.setTyping(false);
-            app.addMessage('ai', '你这份礼物我真的好喜欢，我会记住的。');
+            app.addMessage('ai', '你这份礼物我真的好喜欢，我会记住的。', 'text', contact);
         });
     },
 
@@ -5177,7 +6263,7 @@ const app = {
             : (reason.includes('节') ? `${reason}，想把好运一起送给你` : `因为${reason}，这份礼物很像你`);
         const pushGift = (noteText) => {
             const safeNote = (noteText || '').replace(/\|/g, '｜');
-            app.addMessage('ai', `${gift.emoji}|${gift.name}|${safeNote}|from-ai`, 'gift');
+            app.addMessage('ai', `${gift.emoji}|${gift.name}|${safeNote}|from-ai`, 'gift', contact);
             contact.giftHistory.push({ from: contact.name, to: state.user.name, name: gift.name, emoji: gift.emoji, note: safeNote, time: Date.now() });
             utils.save();
             app.updateProfileUI();
@@ -5191,6 +6277,7 @@ const app = {
         })
         .then(res => res.json())
         .then(data => {
+            app.logModelResponse('gift-from-ai-note', '', data);
             const note = app.cleanAiText(data.choices?.[0]?.message?.content || fallbackNote, 48, 1);
             pushGift(note);
         })
@@ -5329,17 +6416,246 @@ const app = {
         app.openPaymentPad('change-password');
     },
 
+    readApiDraftFromSettings: () => {
+        const urlInput = document.getElementById('set-url');
+        const keyInput = document.getElementById('set-key');
+        const modelInput = document.getElementById('set-model');
+        return app.normalizeApiConfig({
+            url: urlInput?.value || API_CONFIG.url,
+            key: keyInput?.value || API_CONFIG.key,
+            model: modelInput?.value || API_CONFIG.model
+        });
+    },
+
+    getModelsEndpointFromApiUrl: (rawUrl = '') => {
+        const input = `${rawUrl || ''}`.trim();
+        if (!input) return '';
+        try {
+            const url = new URL(input);
+            let path = url.pathname.replace(/\/+$/g, '') || '/v1';
+            if (/\/chat\/completions$/i.test(path)) {
+                path = path.replace(/\/chat\/completions$/i, '/models');
+            } else if (/\/messages$/i.test(path)) {
+                path = path.replace(/\/messages$/i, '/models');
+            } else if (!/\/models$/i.test(path)) {
+                path = `${path}/models`;
+            }
+            url.pathname = path.replace(/\/{2,}/g, '/');
+            return url.toString();
+        } catch (_) {
+            let text = input.replace(/\/+$/g, '');
+            if (/\/chat\/completions$/i.test(text)) text = text.replace(/\/chat\/completions$/i, '/models');
+            else if (/\/messages$/i.test(text)) text = text.replace(/\/messages$/i, '/models');
+            else if (!/\/models$/i.test(text)) text = `${text}/models`;
+            return text;
+        }
+    },
+
+    buildModelProbePlans: (modelsUrl, key) => {
+        const safeKey = `${key || ''}`.trim();
+        const plans = [
+            {
+                format: 'openai',
+                label: 'OpenAI Header',
+                url: modelsUrl,
+                headers: { Authorization: `Bearer ${safeKey}` }
+            },
+            {
+                format: 'anthropic',
+                label: 'Anthropic Header',
+                url: modelsUrl,
+                headers: { 'x-api-key': safeKey, 'anthropic-version': '2023-06-01' }
+            },
+            {
+                format: 'gemini',
+                label: 'Gemini Header',
+                url: modelsUrl,
+                headers: { 'x-goog-api-key': safeKey }
+            }
+        ];
+        try {
+            const queryUrl = new URL(modelsUrl);
+            if (!queryUrl.searchParams.get('key')) queryUrl.searchParams.set('key', safeKey);
+            plans.push({
+                format: 'gemini',
+                label: 'Gemini Query Key',
+                url: queryUrl.toString(),
+                headers: {}
+            });
+        } catch (_) {}
+        return plans;
+    },
+
+    extractModelItemsFromPayload: (payload) => {
+        const list = [];
+        const pushItem = (rawId, rawLabel = '') => {
+            const id = `${rawId || ''}`.trim();
+            if (!id) return;
+            const label = `${rawLabel || id}`.trim() || id;
+            if (list.some(item => item.id === id)) return;
+            list.push({ id, label });
+        };
+
+        const data = payload?.data;
+        if (Array.isArray(data)) {
+            data.forEach(item => pushItem(item?.id || item?.name || item?.model, item?.display_name || item?.name || item?.id));
+        }
+        const models = payload?.models;
+        if (Array.isArray(models)) {
+            models.forEach(item => pushItem(item?.id || item?.name || item?.model, item?.display_name || item?.name || item?.id));
+        }
+        const items = payload?.items;
+        if (Array.isArray(items)) {
+            items.forEach(item => pushItem(item?.id || item?.name || item?.model, item?.display_name || item?.name || item?.id));
+        }
+        if (typeof payload?.model === 'string') {
+            pushItem(payload.model, payload.model);
+        }
+        return list;
+    },
+
+    escapeHtml: (value = '') => `${value || ''}`
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;'),
+
+    setSettingsStatus: (message = '', tone = 'info') => {
+        const el = document.getElementById('settings-probe-status');
+        if (!el) return;
+        const colorMap = {
+            info: '#6b7280',
+            success: '#0f766e',
+            warning: '#b45309',
+            danger: '#b91c1c'
+        };
+        el.style.color = colorMap[tone] || colorMap.info;
+        el.innerText = message;
+    },
+
+    setSettingsProbeBusy: (busy = false) => {
+        const testBtn = document.getElementById('settings-test-btn');
+        const fetchBtn = document.getElementById('settings-fetch-models-btn');
+        if (testBtn) testBtn.disabled = !!busy;
+        if (fetchBtn) fetchBtn.disabled = !!busy;
+    },
+
+    probeModelsEndpoint: async (forModels = false) => {
+        const draft = app.readApiDraftFromSettings();
+        const modelsUrl = app.getModelsEndpointFromApiUrl(draft.url);
+        if (!modelsUrl) throw new Error('请先填写正确的 Base URL');
+        if (!draft.key) throw new Error('请先填写 API Key');
+        const plans = app.buildModelProbePlans(modelsUrl, draft.key);
+        let lastErr = null;
+
+        for (const plan of plans) {
+            try {
+                const res = await fetch(plan.url, {
+                    method: 'GET',
+                    headers: { ...plan.headers, Accept: 'application/json' },
+                    cache: 'no-store'
+                });
+                const raw = await res.text();
+                let payload = null;
+                try {
+                    payload = raw ? JSON.parse(raw) : {};
+                } catch (_) {
+                    payload = raw || {};
+                }
+
+                if (!res.ok) {
+                    const message = payload?.error?.message || payload?.message || `HTTP ${res.status}`;
+                    throw new Error(message);
+                }
+
+                const models = app.extractModelItemsFromPayload(payload);
+                if (forModels && !models.length) {
+                    throw new Error('连接成功，但接口没有返回模型列表');
+                }
+                return {
+                    format: plan.format,
+                    label: plan.label,
+                    url: plan.url,
+                    models,
+                    payload
+                };
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        throw (lastErr || new Error('请求失败'));
+    },
+
+    applySelectedModelFromSettings: (modelId = '') => {
+        const input = document.getElementById('set-model');
+        if (input) input.value = `${modelId || ''}`;
+    },
+
+    testApiConnectionFromSettings: async () => {
+        app.setSettingsProbeBusy(true);
+        app.setSettingsStatus('正在测试连接...', 'info');
+        try {
+            const result = await app.probeModelsEndpoint(false);
+            app.setSettingsStatus(`连接成功（${result.label}）`, 'success');
+        } catch (error) {
+            app.setSettingsStatus(`连接失败：${error.message || error}`, 'danger');
+        } finally {
+            app.setSettingsProbeBusy(false);
+        }
+    },
+
+    fetchModelsFromSettings: async () => {
+        app.setSettingsProbeBusy(true);
+        app.setSettingsStatus('正在拉取模型列表...', 'info');
+        try {
+            const result = await app.probeModelsEndpoint(true);
+            const select = document.getElementById('set-model-list');
+            const modelInput = document.getElementById('set-model');
+            const current = `${modelInput?.value || ''}`.trim();
+            if (select) {
+                select.innerHTML = result.models
+                    .map(item => `<option value="${app.escapeHtml(item.id)}">${app.escapeHtml(item.label)}</option>`)
+                    .join('');
+                const picked = result.models.find(item => item.id === current) || result.models[0];
+                select.value = picked?.id || '';
+                if (picked && modelInput) modelInput.value = picked.id;
+            }
+            app.setSettingsStatus(`已获取 ${result.models.length} 个模型（${result.label}）`, 'success');
+        } catch (error) {
+            app.setSettingsStatus(`获取失败：${error.message || error}`, 'danger');
+        } finally {
+            app.setSettingsProbeBusy(false);
+        }
+    },
+
     // Settings
     showSettings: () => {
         app.showModal('API设置',
             `Base URL: <input id="set-url" value="${API_CONFIG.url}" style="width:100%"><br>
              Key: <input id="set-key" value="${API_CONFIG.key}" style="width:100%"><br>
-             Model: <input id="set-model" value="${API_CONFIG.model}" style="width:100%">`
+             Model: <input id="set-model" value="${API_CONFIG.model}" style="width:100%">
+             <div style="display:flex;gap:8px;margin-top:4px;">
+                <button class="send-btn" id="settings-test-btn" style="margin:0;flex:1;background:#111827;" onclick="app.testApiConnectionFromSettings()">测试连接</button>
+                <button class="send-btn" id="settings-fetch-models-btn" style="margin:0;flex:1;" onclick="app.fetchModelsFromSettings()">获取模型</button>
+             </div>
+             <select id="set-model-list" style="margin-top:8px;" onchange="app.applySelectedModelFromSettings(this.value)">
+                <option value="">点击“获取模型”后可选择</option>
+             </select>
+             <div id="settings-probe-status" style="margin-top:6px;font-size:12px;color:#6b7280;">支持按 OpenAI / Anthropic / Gemini 头格式自动探测 /v1/models。</div>`
         );
         document.getElementById('modal-confirm').onclick = () => {
-            API_CONFIG.url = document.getElementById('set-url').value;
-            API_CONFIG.key = document.getElementById('set-key').value;
-            API_CONFIG.model = document.getElementById('set-model').value;
+            const nextApi = app.normalizeApiConfig({
+                url: document.getElementById('set-url').value,
+                key: document.getElementById('set-key').value,
+                model: document.getElementById('set-model').value
+            });
+            state.settings = {
+                ...state.settings,
+                api: nextApi
+            };
+            app.syncApiConfigFromState();
+            utils.save();
             app.closeModal();
             app.showToast('设置已保存', 'success', '保存成功');
         };
@@ -5356,6 +6672,29 @@ const app = {
     },
 
     closeModal: () => document.getElementById('modal-overlay').classList.remove('active'),
+
+    previewMomentImageByEvent: (event) => {
+        const src = event?.currentTarget?.getAttribute('src') || event?.target?.getAttribute?.('src') || '';
+        app.previewMomentImage(src);
+    },
+
+    previewMomentImage: (url = '') => {
+        if (!url) return;
+        const viewer = document.getElementById('moment-image-viewer');
+        const img = document.getElementById('moment-image-viewer-img');
+        if (!viewer || !img) return;
+        img.src = url;
+        viewer.classList.add('active');
+    },
+
+    closeMomentImageViewer: (event) => {
+        if (event && event.target && event.target.id && event.target.id !== 'moment-image-viewer') return;
+        const viewer = document.getElementById('moment-image-viewer');
+        const img = document.getElementById('moment-image-viewer-img');
+        if (!viewer || !img) return;
+        viewer.classList.remove('active');
+        img.src = '';
+    },
 
     getFeedbackToneMeta: (tone = 'info') => ({
         info: { icon: 'i', title: '提示' },
