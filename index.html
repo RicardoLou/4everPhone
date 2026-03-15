@@ -176,8 +176,15 @@
             border-radius: 16px;
         }
         .desktop-grid.manual-layout .desktop-grid-slot.empty {
-            border: 1px dashed rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.03);
+            border: 1px dashed transparent;
+            background: transparent;
+            opacity: 0;
+            transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+        #desktop-view.dragging-app .desktop-grid.manual-layout .desktop-grid-slot.empty {
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            opacity: 1;
         }
         .desktop-grid-slot.drag-target {
             outline: 1px dashed rgba(255,255,255,0.72);
@@ -196,6 +203,9 @@
             align-items: center;
             gap: 6px;
             cursor: pointer;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .desktop-app-icon-wrap {
             position: relative;
@@ -267,6 +277,30 @@
         }
         .desktop-app.shaking .desktop-app-icon {
             animation: desktopShake 0.22s linear infinite alternate;
+        }
+        .desktop-touch-ghost {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 66px;
+            z-index: 980;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transform: translate(-9999px, -9999px);
+        }
+        .desktop-touch-ghost .desktop-app-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            box-shadow: 0 14px 28px rgba(0,0,0,0.3);
+        }
+        .desktop-touch-ghost .desktop-app-name {
+            font-size: 10px;
+            color: rgba(255,255,255,0.96);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
         }
         @keyframes desktopShake {
             from { transform: rotate(-1.8deg); }
@@ -383,7 +417,9 @@
             right: 0;
             top: 0;
             bottom: 0;
-            background: #f2f2f7;
+            background:
+                radial-gradient(circle at 14% 10%, rgba(255,255,255,0.8), transparent 34%),
+                linear-gradient(180deg, #f4f6fb 0%, #eef1f8 100%);
             display: none;
             flex-direction: column;
             z-index: 295;
@@ -396,10 +432,13 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            border-bottom: 1px solid #e4e4e8;
-            background: rgba(249, 249, 251, 0.96);
+            border-bottom: none;
+            background: transparent;
             font-size: 17px;
             font-weight: 600;
+        }
+        .desktop-app-nav > span {
+            display: none;
         }
         .desktop-app-back {
             position: absolute;
@@ -448,6 +487,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 12px 14px calc(20px + var(--safe-area-bottom));
+            background: transparent;
         }
         .store-hero-card {
             padding: 16px;
@@ -465,10 +505,11 @@
             margin: 16px 2px 10px;
         }
         .store-list {
-            background: #fff;
+            background: rgba(255,255,255,0.9);
             border-radius: 16px;
             overflow: hidden;
-            border: 1px solid #ececf0;
+            border: 1px solid rgba(255,255,255,0.58);
+            box-shadow: 0 14px 28px rgba(31, 41, 55, 0.08);
         }
         .store-app-row {
             display: flex;
@@ -530,11 +571,12 @@
             color: #d64747;
         }
         .desktop-settings-card {
-            background: #fff;
+            background: rgba(255,255,255,0.9);
             border-radius: 16px;
             overflow: hidden;
-            border: 1px solid #ececf0;
+            border: 1px solid rgba(255,255,255,0.62);
             margin-bottom: 12px;
+            box-shadow: 0 12px 28px rgba(31, 41, 55, 0.08);
         }
         .desktop-settings-row {
             display: flex;
@@ -629,11 +671,12 @@
             margin-top: 8px;
         }
         .desktop-mini-card {
-            background: #fff;
-            border: 1px solid #ececf0;
-            border-radius: 14px;
-            padding: 12px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.62);
+            border-radius: 16px;
+            padding: 13px 12px;
             margin-bottom: 10px;
+            box-shadow: 0 10px 24px rgba(31, 41, 55, 0.07);
         }
         .desktop-mini-title {
             font-size: 14px;
@@ -990,10 +1033,15 @@
             text-shadow: 0 1px 3px rgba(0,0,0,0.22);
         }
         #phone-frame.desktop-subapp-open .status-bar {
-            background: rgba(242, 242, 247, 0.18);
-            backdrop-filter: blur(12px) saturate(130%);
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             color: #111827;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+            text-shadow: none;
+        }
+        #phone-frame.desktop-subapp-open .desktop-app-nav {
+            background: transparent;
+            border-bottom: none;
         }
         #phone-frame.desktop-mode #main-nav,
         #phone-frame.desktop-mode #app-content,
@@ -1175,19 +1223,18 @@
 
         .chat-item {
             display: flex;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.88);
+            padding: 13px 16px;
+            background: rgba(255,255,255,0.9);
             align-items: center;
-            border: 1px solid rgba(255,255,255,0.5);
-            border-bottom: none;
-            border-radius: 22px;
-            margin: 0 16px 12px;
-            box-shadow: 0 10px 28px rgba(38, 32, 22, 0.05);
+            border: 1px solid rgba(255,255,255,0.62);
+            border-radius: 20px;
+            margin: 0 16px 10px;
+            box-shadow: 0 10px 24px rgba(38, 32, 22, 0.07);
             cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
         }
-        .chat-item:active { background: #f7f4ef; transform: scale(0.995); }
-        .chat-avatar { width: 50px; height: 50px; border-radius: 8px; margin-right: 12px; background: #eee; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; overflow: hidden; }
+        .chat-item:active { background: #f8f5ef; transform: scale(0.994); box-shadow: 0 8px 18px rgba(38, 32, 22, 0.09); }
+        .chat-avatar { width: 50px; height: 50px; border-radius: 14px; margin-right: 12px; background: #eee; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.44); }
         .chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .chat-body { flex: 1; overflow: hidden; }
         .chat-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
@@ -1205,7 +1252,7 @@
         #chat-view.active { display: flex; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
-        .message-list { flex: 1; padding: 16px; padding-bottom: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; scroll-behavior: smooth; }
+        .message-list { flex: 1; padding: 16px; padding-bottom: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
         .message-row { display: flex; gap: 10px; max-width: 80%; align-items: flex-start; }
         .message-row.sent { align-self: flex-end; flex-direction: row-reverse; }
         .msg-avatar { width: 40px; height: 40px; border-radius: 6px; background: #ccc; flex-shrink: 0; overflow: hidden; }
@@ -1214,12 +1261,12 @@
         
         .message-bubble { 
             padding: 10px 14px; 
-            border-radius: 6px; 
+            border-radius: 10px; 
             font-size: 16px; 
             line-height: 1.5; 
             position: relative; 
             word-wrap: break-word; 
-            box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         .message-delete-target { touch-action: pan-y; }
         
@@ -1440,8 +1487,8 @@
         /* Tab Bar */
         .tab-bar {
             height: calc(50px + var(--safe-area-bottom));
-            background: #F7F7F7;
-            border-top: 0.5px solid rgba(0,0,0,0.1);
+            background: rgba(250, 249, 247, 0.9);
+            border-top: 0.5px solid rgba(58,49,37,0.08);
             display: flex;
             justify-content: space-around;
             padding-top: 6px;
@@ -1449,6 +1496,8 @@
             bottom: 0;
             width: 100%;
             z-index: 100;
+            backdrop-filter: blur(14px) saturate(120%);
+            -webkit-backdrop-filter: blur(14px) saturate(120%);
         }
         .tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #999; cursor: pointer; flex: 1; }
         .tab-item.active { color: var(--green); }
@@ -1808,8 +1857,65 @@
         .moment-draft-preview { display: none; margin-bottom: 10px; }
         .moment-draft-preview.active { display: block; }
         .moment-draft-preview img { width: 100%; border-radius: 8px; max-height: 220px; object-fit: cover; box-shadow: none; }
-        #view-chats { padding: 8px 0 24px; }
-        #chat-list-container { padding-bottom: 18px; }
+        #view-chats {
+            padding: 8px 0 24px;
+            background:
+                radial-gradient(circle at 12% 2%, rgba(255,255,255,0.78), transparent 34%),
+                linear-gradient(180deg, #faf5ee 0%, #f3ece2 100%);
+        }
+        #chat-list-container { padding-bottom: 18px; min-height: 100%; }
+        .chat-home-hero {
+            margin: 10px 16px 12px;
+            border-radius: 24px;
+            padding: 16px;
+            background: linear-gradient(145deg, #121a2a 0%, #32496d 56%, #f08f68 100%);
+            color: #fff;
+            box-shadow: 0 18px 32px rgba(29, 38, 56, 0.24);
+            position: relative;
+            overflow: hidden;
+        }
+        .chat-home-hero::after {
+            content: '';
+            position: absolute;
+            right: -34px;
+            top: -34px;
+            width: 148px;
+            height: 148px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.28), rgba(255,255,255,0));
+        }
+        .chat-home-title {
+            position: relative;
+            z-index: 1;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            margin-bottom: 6px;
+        }
+        .chat-home-sub {
+            position: relative;
+            z-index: 1;
+            font-size: 13px;
+            line-height: 1.45;
+            opacity: 0.9;
+        }
+        .chat-home-metrics {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .chat-home-chip {
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.26);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
         #view-profile {
             padding: 8px 0 28px;
             background:
@@ -2762,6 +2868,15 @@ const DESKTOP_GRID_COLUMNS = 4;
 const DESKTOP_GRID_ROWS = 4;
 const DESKTOP_PAGE_SIZE = DESKTOP_GRID_COLUMNS * DESKTOP_GRID_ROWS;
 const DEFAULT_PROMPT = '你是用户最亲近的聊天对象之一，不要提你是AI。当前时间：{{time}}。请用真人口语回复，语气自然、有情绪起伏，贴合你的人设。';
+const IMMERSIVE_STYLE_PROMPT = [
+    '[叙事增强准则]',
+    '1. 禁止跳过程，不要用“经过一番挣扎后”这类一笔带过的写法，要把关键动作与心理过程写出来。',
+    '2. 叙事视角随上下文自适应（第一人称/第三人称），必要时可混合，但单次回复内部保持清晰。',
+    '3. 强化临场感：优先补充可感知细节，如声音、呼吸、气味、触感、节奏变化。',
+    '4. 情绪冲突场景要写出内在拉扯：想法变化、犹豫、反复、自我说服与真实动机。',
+    '5. 始终保持角色视角表达，不要出现“作为AI”“模型限制”“系统提示”等出戏措辞。',
+    '6. 可写高张力戏剧冲突，但不得引导或美化未成年人、强迫、违法伤害等内容。'
+].join('\n');
 const FESTIVAL_MAP = {
     '01-01': { name: '元旦', gift: '新年盲盒' },
     '02-14': { name: '情人节', gift: '香槟玫瑰' },
@@ -2991,11 +3106,26 @@ const utils = {
     scrollToBottom: (immediate = false) => {
         const list = document.getElementById('msg-list');
         if (!list) return;
+        const scrollNow = () => {
+            try {
+                list.scrollTo({ top: list.scrollHeight, behavior: 'auto' });
+            } catch (_) {
+                list.scrollTop = list.scrollHeight;
+            }
+        };
         if (immediate) {
-            list.scrollTop = list.scrollHeight;
+            const previousBehavior = list.style.scrollBehavior;
+            list.style.scrollBehavior = 'auto';
+            scrollNow();
+            requestAnimationFrame(scrollNow);
+            setTimeout(scrollNow, 0);
+            setTimeout(() => {
+                scrollNow();
+                list.style.scrollBehavior = previousBehavior || '';
+            }, 120);
             return;
         }
-        setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
+        setTimeout(scrollNow, 16);
     },
     // Resize image to base64
     processImage: (file, callback, maxSize = 200, quality = 0.8) => {
@@ -3048,6 +3178,15 @@ const app = {
     desktopDragTargetPage: null,
     desktopDragTargetSlot: null,
     desktopDragEdgeSide: '',
+    desktopTouchCandidate: null,
+    desktopTouchDragging: false,
+    desktopTouchPointerId: null,
+    desktopTouchDropArea: '',
+    desktopTouchDropTargetId: '',
+    desktopTouchDropSlot: null,
+    desktopTouchDropPage: null,
+    desktopTouchDropEdge: '',
+    desktopTouchGhostEl: null,
     desktopPressTimer: null,
     desktopPressTriggered: false,
     desktopEditingAppId: '',
@@ -3057,6 +3196,8 @@ const app = {
     topNoticeTimer: null,
     topNoticeQueue: [],
     topNoticeShowing: false,
+    chatCompletionQueue: Promise.resolve(),
+    pendingReceiveRetryTimers: {},
     weatherLoading: false,
     weatherCityEditorOpen: false,
 
@@ -3080,6 +3221,9 @@ const app = {
         document.getElementById('nav-right').onclick = app.showAddContact;
         window.addEventListener('resize', app.syncViewportHeight);
         window.addEventListener('orientationchange', app.syncViewportHeight);
+        window.addEventListener('pointermove', app.handleDesktopGlobalPointerMove, { passive: false });
+        window.addEventListener('pointerup', app.handleDesktopGlobalPointerUp, { passive: false });
+        window.addEventListener('pointercancel', app.handleDesktopGlobalPointerCancel, { passive: false });
 
         app.updateClock();
         setInterval(app.updateClock, 1000);
@@ -4389,6 +4533,46 @@ const app = {
         }
     },
 
+    fetchJsonWithRetry: async (url, options = {}) => {
+        const retries = Math.max(0, Number(options.retries ?? 2) || 0);
+        const timeout = Math.max(3000, Number(options.timeout ?? 10000) || 10000);
+        const backoff = Math.max(120, Number(options.backoff ?? 480) || 480);
+        let lastError = null;
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+            try {
+                return await app.fetchJsonWithTimeout(url, timeout + attempt * 1800);
+            } catch (error) {
+                lastError = error;
+                if (attempt >= retries) break;
+                await new Promise(resolve => setTimeout(resolve, backoff * (attempt + 1)));
+            }
+        }
+        throw lastError || new Error('请求失败');
+    },
+
+    normalizeWeatherCityInput: (city = '') => `${city || ''}`
+        .replace(/\s+/g, '')
+        .replace(/[，,。.;；:：]/g, '')
+        .trim(),
+
+    buildWeatherCityCandidates: (city = '') => {
+        const base = app.normalizeWeatherCityInput(city);
+        if (!base) return [];
+        const candidates = [];
+        const push = (value) => {
+            const text = `${value || ''}`.trim();
+            if (!text) return;
+            if (!candidates.includes(text)) candidates.push(text);
+        };
+        push(base);
+        const withoutSuffix = base.replace(/(特别行政区|自治区|自治州|地区|盟|省|市|区|县)$/, '');
+        push(withoutSuffix);
+        if (withoutSuffix && !/(市|区|县|州)$/.test(withoutSuffix) && withoutSuffix.length <= 5) {
+            push(`${withoutSuffix}市`);
+        }
+        return candidates.filter(Boolean);
+    },
+
     extractTopicList: (payload) => {
         const buckets = [
             payload?.data,
@@ -5072,7 +5256,8 @@ const app = {
             <div class="desktop-grid-slot filled" data-slot="${safeSlot}" ${slotDragAttrs}>
                 <button class="desktop-app desktop-grid-item" data-app-id="${safeAppId}" data-slot="${safeSlot}" draggable="true"
                     onclick="app.onDesktopIconClick(event, '${safeAppId}')"
-                    onpointerdown="app.handleDesktopIconPointerDown(event, '${safeAppId}')"
+                    oncontextmenu="return false"
+                    onpointerdown="app.handleDesktopIconPointerDown(event, '${safeAppId}', 'grid')"
                     onpointerup="app.handleDesktopIconPointerUp(event)"
                     onpointercancel="app.handleDesktopIconPointerCancel()"
                     onpointerleave="app.handleDesktopIconPointerCancel()"
@@ -5127,7 +5312,12 @@ const app = {
             if (!def) return '';
             const badge = app.getDesktopAppBadge(appId, desktopSettings);
             return `
-            <button class="desktop-app" draggable="true" onclick="app.handleDesktopAppTap('${appId}')"
+            <button class="desktop-app" data-app-id="${appId}" draggable="true" onclick="app.onDesktopIconClick(event, '${appId}')"
+                oncontextmenu="return false"
+                onpointerdown="app.handleDesktopIconPointerDown(event, '${appId}', 'dock')"
+                onpointerup="app.handleDesktopIconPointerUp(event)"
+                onpointercancel="app.handleDesktopIconPointerCancel()"
+                onpointerleave="app.handleDesktopIconPointerCancel()"
                 ondragstart="app.handleDesktopDragStart(event, '${appId}', 'dock')"
                 ondragover="app.handleDesktopDragOver(event, '${appId}', 'dock')"
                 ondrop="app.handleDesktopDrop(event, '${appId}', 'dock')"
@@ -5911,7 +6101,7 @@ const app = {
         const safeMode = mode === 'city' ? 'city' : 'ip';
         const settings = app.getDesktopSettings();
         const previousMode = settings.weatherQueryMode === 'city' ? 'city' : 'ip';
-        const city = `${settings.weatherCity || ''}`.trim();
+        const city = app.normalizeWeatherCityInput(`${settings.weatherCity || ''}`);
         if (previousMode === safeMode) {
             if (safeMode === 'city' && !city) {
                 app.weatherCityEditorOpen = true;
@@ -5969,7 +6159,7 @@ const app = {
 
     saveWeatherCityFromInput: () => {
         const input = document.getElementById('weather-city-input');
-        const city = `${input?.value || ''}`.trim();
+        const city = app.normalizeWeatherCityInput(`${input?.value || ''}`);
         if (!city) {
             app.showToast('请输入城市名称', 'warning');
             return;
@@ -6034,7 +6224,7 @@ const app = {
     fetchWeatherForDesktopCity: async (force = false) => {
         const settings = app.getDesktopSettings();
         const weatherQueryMode = settings.weatherQueryMode === 'city' ? 'city' : 'ip';
-        const configuredCity = `${settings.weatherCity || ''}`.trim();
+        const configuredCity = app.normalizeWeatherCityInput(`${settings.weatherCity || ''}`);
         const city = weatherQueryMode === 'city' ? configuredCity : '';
         if (weatherQueryMode === 'city' && !city) {
             const summaryEl = document.getElementById('weather-summary');
@@ -6061,14 +6251,27 @@ const app = {
         if (summaryEl) summaryEl.innerText = `正在查询 ${queryTarget} 的天气...`;
         if (metaEl) metaEl.innerText = '';
         try {
-            const params = new URLSearchParams({
-                lang: 'zh',
-                extended: 'true',
-                forecast: 'true'
-            });
-            if (weatherQueryMode === 'city' && city) params.set('city', city);
-            const weatherUrl = `${UAPI_WEATHER_ENDPOINT}?${params.toString()}`;
-            const weatherRaw = await app.fetchJsonWithTimeout(weatherUrl, 10000);
+            const cityCandidates = weatherQueryMode === 'city' ? app.buildWeatherCityCandidates(city) : [''];
+            let weatherRaw = null;
+            let successCity = city;
+            let lastError = null;
+            for (const candidateCity of cityCandidates) {
+                const params = new URLSearchParams({
+                    lang: 'zh',
+                    extended: 'true',
+                    forecast: 'true'
+                });
+                if (weatherQueryMode === 'city' && candidateCity) params.set('city', candidateCity);
+                const weatherUrl = `${UAPI_WEATHER_ENDPOINT}?${params.toString()}`;
+                try {
+                    weatherRaw = await app.fetchJsonWithRetry(weatherUrl, { retries: 2, timeout: 12000, backoff: 520 });
+                    successCity = candidateCity || city;
+                    break;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            if (!weatherRaw) throw lastError || new Error('天气接口请求失败');
             const apiCode = `${weatherRaw?.code || ''}`.trim().toUpperCase();
             const weatherPayload = app.extractUapiWeatherPayload(weatherRaw);
             if (!weatherPayload) {
@@ -6098,7 +6301,7 @@ const app = {
 
             settings.weatherData = {
                 queryCity: city,
-                city: `${weatherPayload?.city || city || ''}`.trim().slice(0, 32),
+                city: `${weatherPayload?.city || successCity || city || ''}`.trim().slice(0, 32),
                 province: `${weatherPayload?.province || ''}`.trim().slice(0, 32),
                 temperature: currentTemp,
                 minTemp,
@@ -6130,7 +6333,7 @@ const app = {
     renderWeatherApp: () => {
         const settings = app.getDesktopSettings();
         const weatherQueryMode = settings.weatherQueryMode === 'city' ? 'city' : 'ip';
-        const city = `${settings.weatherCity || ''}`.trim();
+        const city = app.normalizeWeatherCityInput(`${settings.weatherCity || ''}`);
         const data = settings.weatherData;
         const cityEl = document.getElementById('weather-city-name');
         const summaryEl = document.getElementById('weather-summary');
@@ -6314,25 +6517,263 @@ const app = {
             app.desktopPressTriggered = false;
             return;
         }
+        if (app.desktopTouchDragging) return;
         app.handleDesktopAppTap(appId);
     },
 
-    handleDesktopIconPointerDown: (event, appId) => {
+    handleDesktopIconPointerDown: (event, appId, sourceArea = 'grid') => {
         if (event.button !== undefined && event.button !== 0) return;
         app.desktopPressTriggered = false;
         clearTimeout(app.desktopPressTimer);
+        const isTouch = event?.pointerType === 'touch';
+        if (isTouch) {
+            app.desktopTouchCandidate = {
+                appId,
+                sourceArea,
+                pointerId: event.pointerId,
+                startX: Number(event.clientX || 0),
+                startY: Number(event.clientY || 0),
+                element: event.currentTarget
+            };
+        } else {
+            app.desktopTouchCandidate = null;
+        }
         app.desktopPressTimer = setTimeout(() => {
             app.desktopPressTriggered = true;
+            app.desktopTouchCandidate = null;
             app.showDesktopAppActions(appId);
         }, 560);
     },
 
     handleDesktopIconPointerUp: () => {
         clearTimeout(app.desktopPressTimer);
+        app.desktopTouchCandidate = null;
     },
 
     handleDesktopIconPointerCancel: () => {
         clearTimeout(app.desktopPressTimer);
+        app.desktopTouchCandidate = null;
+    },
+
+    ensureDesktopTouchGhost: (appId) => {
+        const safeId = `${appId || ''}`.trim();
+        if (!safeId) return;
+        let ghost = app.desktopTouchGhostEl;
+        if (!ghost) {
+            ghost = document.createElement('div');
+            ghost.className = 'desktop-touch-ghost';
+            document.body.appendChild(ghost);
+            app.desktopTouchGhostEl = ghost;
+        }
+        const settings = app.getDesktopSettings();
+        const def = app.getDesktopAppDef(safeId);
+        if (!def) return;
+        ghost.innerHTML = `
+            <div class="desktop-app-icon ${def.iconClass || ''}">${app.renderDesktopIconMarkup(safeId, settings)}</div>
+            <div class="desktop-app-name">${def.name}</div>
+        `;
+    },
+
+    moveDesktopTouchGhost: (x = 0, y = 0) => {
+        if (!app.desktopTouchGhostEl) return;
+        const tx = Number(x || 0) - 33;
+        const ty = Number(y || 0) - 78;
+        app.desktopTouchGhostEl.style.transform = `translate(${tx}px, ${ty}px)`;
+    },
+
+    clearDesktopTouchGhost: () => {
+        if (!app.desktopTouchGhostEl) return;
+        app.desktopTouchGhostEl.remove();
+        app.desktopTouchGhostEl = null;
+    },
+
+    clearDesktopTouchDragIndicators: () => {
+        document.querySelectorAll('.desktop-grid .desktop-app, .desktop-grid .desktop-grid-slot, .desktop-dock-icons .desktop-app').forEach(el => {
+            el.classList.remove('drag-target');
+        });
+        document.getElementById('desktop-grid')?.classList.remove('drag-target');
+        document.getElementById('desktop-dock-icons')?.classList.remove('drag-target');
+        document.getElementById('desktop-page-edge-left')?.classList.remove('active');
+        document.getElementById('desktop-page-edge-right')?.classList.remove('active');
+    },
+
+    beginDesktopTouchDrag: (event) => {
+        const candidate = app.desktopTouchCandidate;
+        if (!candidate || app.desktopTouchDragging) return;
+        clearTimeout(app.desktopPressTimer);
+        app.desktopPressTriggered = true;
+        app.desktopTouchDragging = true;
+        app.desktopTouchPointerId = candidate.pointerId;
+        app.desktopDragSourceId = candidate.appId;
+        app.desktopDragSourceArea = candidate.sourceArea || 'grid';
+        app.desktopDragTargetPage = null;
+        app.desktopDragTargetSlot = null;
+        app.desktopDragEdgeSide = '';
+        document.getElementById('desktop-view')?.classList.add('dragging-app');
+        candidate.element?.classList?.add('is-dragging');
+        app.ensureDesktopTouchGhost(candidate.appId);
+        app.moveDesktopTouchGhost(event.clientX || candidate.startX || 0, event.clientY || candidate.startY || 0);
+        app.updateDesktopTouchDropTarget(event);
+    },
+
+    updateDesktopTouchDropTarget: (event) => {
+        if (!app.desktopTouchDragging) return;
+        app.clearDesktopTouchDragIndicators();
+        app.desktopTouchDropArea = '';
+        app.desktopTouchDropTargetId = '';
+        app.desktopTouchDropSlot = null;
+        app.desktopTouchDropPage = app.getDesktopCurrentPage();
+        app.desktopTouchDropEdge = '';
+
+        const clientX = Number(event?.clientX || 0);
+        const clientY = Number(event?.clientY || 0);
+        app.moveDesktopTouchGhost(clientX, clientY);
+
+        const desktop = document.getElementById('desktop-view');
+        const desktopRect = desktop?.getBoundingClientRect();
+        if (desktopRect) {
+            if (clientX <= desktopRect.left + 24) {
+                app.desktopTouchDropArea = 'edge';
+                app.desktopTouchDropEdge = 'left';
+                document.getElementById('desktop-page-edge-left')?.classList.add('active');
+                return;
+            }
+            if (clientX >= desktopRect.right - 24) {
+                app.desktopTouchDropArea = 'edge';
+                app.desktopTouchDropEdge = 'right';
+                document.getElementById('desktop-page-edge-right')?.classList.add('active');
+                return;
+            }
+        }
+
+        const dock = document.getElementById('desktop-dock-icons');
+        const dockRect = dock?.getBoundingClientRect();
+        const inDock = dockRect
+            && clientX >= dockRect.left
+            && clientX <= dockRect.right
+            && clientY >= dockRect.top
+            && clientY <= dockRect.bottom;
+        if (inDock) {
+            app.desktopTouchDropArea = 'dock';
+            dock?.classList.add('drag-target');
+            const dockApps = Array.from(document.querySelectorAll('#desktop-dock-icons .desktop-app'));
+            let targetId = '';
+            for (let i = 0; i < dockApps.length; i += 1) {
+                const rect = dockApps[i].getBoundingClientRect();
+                const center = rect.left + rect.width / 2;
+                if (clientX < center) {
+                    targetId = dockApps[i].dataset.appId || '';
+                    break;
+                }
+            }
+            if (!targetId && dockApps.length) targetId = dockApps[dockApps.length - 1].dataset.appId || '';
+            app.desktopTouchDropTargetId = targetId;
+            if (targetId) {
+                document.querySelector(`#desktop-dock-icons .desktop-app[data-app-id="${targetId}"]`)?.classList.add('drag-target');
+            }
+            return;
+        }
+
+        const grid = document.getElementById('desktop-grid');
+        const gridRect = grid?.getBoundingClientRect();
+        const inGrid = gridRect
+            && clientX >= gridRect.left
+            && clientX <= gridRect.right
+            && clientY >= gridRect.top
+            && clientY <= gridRect.bottom;
+        if (!inGrid) return;
+
+        app.desktopTouchDropArea = 'grid';
+        grid?.classList.add('drag-target');
+        const autoArrange = app.getDesktopSettings().iconAutoArrange !== false;
+        if (autoArrange) {
+            const insertIndex = app.getGridInsertIndexFromPointer(event);
+            app.desktopTouchDropSlot = insertIndex;
+            const items = Array.from(document.querySelectorAll('#desktop-grid .desktop-grid-item'));
+            const target = items[Math.min(insertIndex, items.length - 1)];
+            if (target) target.classList.add('drag-target');
+            app.desktopTouchDropTargetId = target?.dataset?.appId || '';
+        } else {
+            const slotIndex = app.getGridSlotIndexFromPointer(event);
+            app.desktopTouchDropSlot = slotIndex;
+            const slotEl = document.querySelector(`#desktop-grid .desktop-grid-slot[data-slot="${slotIndex}"]`);
+            slotEl?.classList.add('drag-target');
+            const fillBtn = slotEl?.querySelector('.desktop-app[data-app-id]');
+            app.desktopTouchDropTargetId = fillBtn?.dataset?.appId || '';
+        }
+    },
+
+    finishDesktopTouchDrag: () => {
+        if (!app.desktopTouchDragging) return;
+        const sourceId = app.desktopDragSourceId;
+        const area = app.desktopTouchDropArea;
+        const autoArrange = app.getDesktopSettings().iconAutoArrange !== false;
+        if (sourceId && area === 'edge' && app.desktopTouchDropEdge) {
+            app.handleDesktopEdgeDrop({ preventDefault() {}, stopPropagation() {} }, app.desktopTouchDropEdge);
+            return;
+        }
+        if (sourceId && area === 'dock') {
+            app.moveDesktopAppToArea(sourceId, 'dock', { targetId: app.desktopTouchDropTargetId || '' });
+        } else if (sourceId && area === 'grid') {
+            const pageIndex = Math.max(0, Number(app.desktopTouchDropPage) || app.getDesktopCurrentPage());
+            if (autoArrange) {
+                app.moveDesktopAppToArea(sourceId, 'grid', {
+                    pageIndex,
+                    insertIndex: Math.max(0, Number(app.desktopTouchDropSlot) || 0),
+                    targetId: app.desktopTouchDropTargetId || ''
+                });
+            } else {
+                app.moveDesktopAppToArea(sourceId, 'grid', {
+                    pageIndex,
+                    slotIndex: Math.max(0, Number(app.desktopTouchDropSlot) || 0),
+                    targetId: app.desktopTouchDropTargetId || ''
+                });
+            }
+        }
+        app.handleDesktopDragEnd();
+    },
+
+    handleDesktopGlobalPointerMove: (event) => {
+        if (event?.pointerType !== 'touch') return;
+        if (!app.desktopOpen || app.desktopAppOpen) return;
+        const candidate = app.desktopTouchCandidate;
+        if (app.desktopTouchDragging && event.pointerId === app.desktopTouchPointerId) {
+            event.preventDefault();
+            app.updateDesktopTouchDropTarget(event);
+            return;
+        }
+        if (!candidate || event.pointerId !== candidate.pointerId) return;
+        const movedX = Math.abs((event.clientX || 0) - (candidate.startX || 0));
+        const movedY = Math.abs((event.clientY || 0) - (candidate.startY || 0));
+        if (movedX >= 10 || movedY >= 10) {
+            event.preventDefault();
+            app.beginDesktopTouchDrag(event);
+        }
+    },
+
+    handleDesktopGlobalPointerUp: (event) => {
+        if (event?.pointerType !== 'touch') return;
+        clearTimeout(app.desktopPressTimer);
+        if (app.desktopTouchDragging && event.pointerId === app.desktopTouchPointerId) {
+            event.preventDefault();
+            app.finishDesktopTouchDrag();
+            return;
+        }
+        if (app.desktopTouchCandidate && event.pointerId === app.desktopTouchCandidate.pointerId) {
+            app.desktopTouchCandidate = null;
+        }
+    },
+
+    handleDesktopGlobalPointerCancel: (event) => {
+        if (event?.pointerType !== 'touch') return;
+        clearTimeout(app.desktopPressTimer);
+        if (app.desktopTouchDragging && event.pointerId === app.desktopTouchPointerId) {
+            app.handleDesktopDragEnd();
+            return;
+        }
+        if (app.desktopTouchCandidate && event.pointerId === app.desktopTouchCandidate.pointerId) {
+            app.desktopTouchCandidate = null;
+        }
     },
 
     showDesktopAppActions: (appId) => {
@@ -6660,6 +7101,13 @@ const app = {
     },
 
     handleDesktopDragStart: (event, appId, sourceArea = 'grid') => {
+        const likelyTouchEnv = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(hover: none)').matches;
+        if (likelyTouchEnv) {
+            event?.preventDefault?.();
+            return;
+        }
         app.desktopDragSourceId = appId;
         app.desktopDragSourceArea = sourceArea;
         app.desktopDragTargetPage = null;
@@ -6874,19 +7322,25 @@ const app = {
     },
 
     handleDesktopDragEnd: () => {
+        clearTimeout(app.desktopPressTimer);
+        app.desktopTouchCandidate = null;
+        app.desktopTouchDragging = false;
+        app.desktopTouchPointerId = null;
+        app.desktopTouchDropArea = '';
+        app.desktopTouchDropTargetId = '';
+        app.desktopTouchDropSlot = null;
+        app.desktopTouchDropPage = null;
+        app.desktopTouchDropEdge = '';
         app.desktopDragSourceId = '';
         app.desktopDragSourceArea = '';
         app.desktopDragTargetPage = null;
         app.desktopDragTargetSlot = null;
         app.desktopDragEdgeSide = '';
+        app.clearDesktopTouchGhost();
+        app.clearDesktopTouchDragIndicators();
         document.querySelectorAll('.desktop-grid .desktop-app, .desktop-grid .desktop-grid-slot, .desktop-dock-icons .desktop-app').forEach(el => {
             el.classList.remove('is-dragging');
-            el.classList.remove('drag-target');
         });
-        document.getElementById('desktop-grid')?.classList.remove('drag-target');
-        document.getElementById('desktop-dock-icons')?.classList.remove('drag-target');
-        document.getElementById('desktop-page-edge-left')?.classList.remove('active');
-        document.getElementById('desktop-page-edge-right')?.classList.remove('active');
         document.getElementById('desktop-view')?.classList.remove('dragging-app');
     },
 
@@ -7120,11 +7574,25 @@ const app = {
     renderChatList: () => {
         const list = document.getElementById('chat-list-container');
         list.innerHTML = '';
-        if (!state.contacts.length) {
-            list.innerHTML = '<div style="padding:16px;color:#666;">还没有联系人，点右上角 + 添加一个</div>';
+        const sortedContacts = app.getSortedContactsForList();
+        const pendingTotal = sortedContacts.reduce((sum, contact) => sum + app.getPendingReceiveMessages(contact).length, 0);
+        const dateLabel = new Date().toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' });
+        const hero = document.createElement('div');
+        hero.className = 'chat-home-hero';
+        hero.innerHTML = `
+            <div class="chat-home-title">欢迎回来</div>
+            <div class="chat-home-sub">${dateLabel} · 今天适合把想说的话慢慢说完。</div>
+            <div class="chat-home-metrics">
+                <span class="chat-home-chip">联系人 ${sortedContacts.length}</span>
+                <span class="chat-home-chip">待接收 ${pendingTotal}</span>
+            </div>
+        `;
+        list.appendChild(hero);
+        if (!sortedContacts.length) {
+            list.insertAdjacentHTML('beforeend', '<div style="padding:4px 20px 18px;color:#6f665c;">还没有联系人，点右上角 + 添加一个</div>');
             return;
         }
-        app.getSortedContactsForList().forEach(contact => {
+        sortedContacts.forEach(contact => {
             const last = app.getContactLastMessage(contact);
             const preview = app.getMessagePreviewText(last);
             const time = last ? app.formatMomentTime(last.time || Date.now(), '') : '';
@@ -7172,6 +7640,8 @@ const app = {
         document.getElementById('main-nav').style.background = '#EDEDED';
 
         app.renderMessages(true);
+        requestAnimationFrame(() => utils.scrollToBottom(true));
+        setTimeout(() => utils.scrollToBottom(true), 140);
         app.renderPendingChatImageDraft();
         app.maybeSendFestivalGift(contact);
     },
@@ -7763,6 +8233,7 @@ const app = {
             systemContent += `\n\n[世界书规则]\n${worldText}`;
         }
         systemContent += '\n\n[人格表达要求]\n1. 完全以真人口吻聊天，不要出现AI、自我免责声明。\n2. 语气必须贴合你的人设和关系亲密度，允许有情绪、停顿、口头语。\n3. 回复优先表达真实感受，再给出内容，不要机械分点。\n4. 如果对方表达情绪，先共情再回应。\n5. 严禁使用Markdown格式（如 **、#、列表、代码块），只输出自然中文口语。';
+        systemContent += `\n\n${IMMERSIVE_STYLE_PROMPT}`;
         const replyLengthInstruction = app.getReplyLengthInstruction(contact, scene);
         if (replyLengthInstruction) {
             systemContent += `\n6. ${replyLengthInstruction}`;
@@ -7933,6 +8404,39 @@ const app = {
         return /failed to fetch|networkerror|load failed|ssl|tls|fetch/.test(message);
     },
 
+    isLikelySslOrNetworkError: (error) => {
+        const message = `${error?.message || error || ''}`.toLowerCase();
+        return /failed to fetch|networkerror|load failed|ssl|tls|protocol|fetch/.test(message);
+    },
+
+    clearPendingReceiveRetry: (contactId = '') => {
+        const key = `${contactId || ''}`.trim();
+        if (!key) return;
+        const timer = app.pendingReceiveRetryTimers[key];
+        if (!timer) return;
+        clearTimeout(timer);
+        delete app.pendingReceiveRetryTimers[key];
+    },
+
+    schedulePendingReceiveRetry: (contactId = '', delayMs = 4600) => {
+        const key = `${contactId || ''}`.trim();
+        if (!key) return;
+        const contact = app.getContact(key);
+        if (!contact) return;
+        app.clearPendingReceiveRetry(key);
+        const wait = Math.max(2000, Number(delayMs) || 4600);
+        app.pendingReceiveRetryTimers[key] = setTimeout(async () => {
+            delete app.pendingReceiveRetryTimers[key];
+            const nextContact = app.getContact(key);
+            if (!nextContact || !app.getPendingReceiveMessages(nextContact).length) return;
+            await app.receivePendingMessagesForContact(nextContact, {
+                silentNoPendingToast: true,
+                silentErrorToast: true,
+                allowSilentNetworkRecovery: false
+            });
+        }, wait);
+    },
+
     logModelResponse: (scene = 'unknown', rawBody = '', data = null, meta = {}) => {
         const content = typeof data?.choices?.[0]?.message?.content === 'string'
             ? data.choices[0].message.content
@@ -7946,66 +8450,71 @@ const app = {
     },
 
     requestChatCompletion: async (payload, options = {}) => {
-        const retries = Number.isFinite(options.retries) ? options.retries : 2;
-        const retryDelayMs = Number.isFinite(options.retryDelayMs) ? options.retryDelayMs : 700;
-        const scene = options.scene || 'chat';
-        let lastError = null;
+        const execute = async () => {
+            const retries = Number.isFinite(options.retries) ? options.retries : 3;
+            const retryDelayMs = Number.isFinite(options.retryDelayMs) ? options.retryDelayMs : 700;
+            const scene = options.scene || 'chat';
+            let lastError = null;
 
-        for (let attempt = 0; attempt <= retries; attempt += 1) {
-            try {
-                const res = await fetch(API_CONFIG.url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_CONFIG.key}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                let rawBody = '';
+            for (let attempt = 0; attempt <= retries; attempt += 1) {
                 try {
-                    rawBody = await res.text();
-                } catch (_) {
-                    rawBody = '';
-                }
+                    const res = await fetch(API_CONFIG.url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_CONFIG.key}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
 
-                let data = null;
-                if (rawBody) {
+                    let rawBody = '';
                     try {
-                        data = JSON.parse(rawBody);
+                        rawBody = await res.text();
                     } catch (_) {
-                        data = null;
-                        console.warn(`[AI RAW][${scene}] JSON parse failed`, rawBody);
+                        rawBody = '';
                     }
+
+                    let data = null;
+                    if (rawBody) {
+                        try {
+                            data = JSON.parse(rawBody);
+                        } catch (_) {
+                            data = null;
+                            console.warn(`[AI RAW][${scene}] JSON parse failed`, rawBody);
+                        }
+                    }
+
+                    app.logModelResponse(scene, rawBody, data, {
+                        status: res.status,
+                        ok: res.ok,
+                        attempt: attempt + 1
+                    });
+
+                    if (!res.ok) {
+                        const error = new Error(data?.error?.message || data?.message || rawBody || `请求失败（${res.status}）`);
+                        error.status = res.status;
+                        error.payload = data;
+                        throw error;
+                    }
+
+                    return data || {};
+                } catch (error) {
+                    lastError = error;
+                    const status = Number(error?.status) || 0;
+                    const shouldRetry = attempt < retries && app.isRetryableApiError(error, status);
+                    if (!shouldRetry) break;
+                    const waitMs = Math.round(retryDelayMs * Math.pow(1.75, attempt) + 120 + Math.random() * 180);
+                    await app.sleep(waitMs);
                 }
-
-                app.logModelResponse(scene, rawBody, data, {
-                    status: res.status,
-                    ok: res.ok,
-                    attempt: attempt + 1
-                });
-
-                if (!res.ok) {
-                    const error = new Error(data?.error?.message || data?.message || rawBody || `请求失败（${res.status}）`);
-                    error.status = res.status;
-                    error.payload = data;
-                    throw error;
-                }
-
-                return data || {};
-            } catch (error) {
-                lastError = error;
-                console.warn(`[AI RAW][${scene}] request failed`, error);
-                const status = Number(error?.status) || 0;
-                const shouldRetry = attempt < retries && app.isRetryableApiError(error, status);
-                if (!shouldRetry) break;
-                const waitMs = Math.round(retryDelayMs * Math.pow(1.75, attempt) + 120 + Math.random() * 180);
-                console.warn(`chat request retry ${attempt + 1}/${retries}`, error);
-                await app.sleep(waitMs);
             }
-        }
 
-        throw lastError || new Error('请求失败');
+            throw lastError || new Error('请求失败');
+        };
+
+        // 串行化聊天类请求，降低切页面时并发请求导致的首发失败概率。
+        const queued = app.chatCompletionQueue.catch(() => null).then(execute);
+        app.chatCompletionQueue = queued.catch(() => null);
+        return queued;
     },
 
     extractImageFeatures: (base64) => new Promise((resolve) => {
@@ -8149,6 +8658,7 @@ const app = {
         if (!contact) return false;
         const silentNoPendingToast = !!options.silentNoPendingToast;
         const silentErrorToast = !!options.silentErrorToast;
+        const allowSilentNetworkRecovery = options.allowSilentNetworkRecovery !== false;
         const isActiveChat = state.currentChatId === contact.id && !!document.getElementById('chat-view')?.classList.contains('active');
         const pendingMessages = app.getPendingReceiveMessages(contact);
         if (!pendingMessages.length) {
@@ -8237,12 +8747,16 @@ const app = {
                 await app.emitAiReplySegments(contact, replySegments);
                 app.processMemory(contact);
                 app.maybeSendGiftAfterUserRequest(contact, combinedUserText);
+                app.clearPendingReceiveRetry(contact.id);
                 utils.save();
                 return true;
             } else {
                 throw new Error('模型没有返回有效回复');
             }
         } catch (e) {
+            if (allowSilentNetworkRecovery && app.isLikelySslOrNetworkError(e)) {
+                app.schedulePendingReceiveRetry(contact.id, 5200 + Math.floor(Math.random() * 2600));
+            }
             if (!silentErrorToast) app.showToast(`接收失败：${e.message}`, 'warning', '可再次尝试');
             return false;
         } finally {
