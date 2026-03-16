@@ -215,14 +215,27 @@
         .desktop-app-icon {
             width: 58px;
             height: 58px;
-            border-radius: 16px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 29px;
             color: #fff;
-            box-shadow: 0 10px 18px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 12px 22px rgba(36, 24, 54, 0.2);
+            border: 1px solid rgba(255,255,255,0.38);
+            position: relative;
+            overflow: hidden;
+        }
+        .desktop-app-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 6px;
+            right: 6px;
+            height: 42%;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0));
+            pointer-events: none;
         }
         .desktop-app-badge {
             position: absolute;
@@ -243,22 +256,38 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             line-height: 1;
         }
-        .desktop-app-icon.wechat { background: linear-gradient(145deg, #35d75f 0%, #22b14a 100%); }
-        .desktop-app-icon.store { background: linear-gradient(145deg, #4f95ff 0%, #2b6add 100%); }
-        .desktop-app-icon.settings { background: linear-gradient(145deg, #a5acba 0%, #737d90 100%); }
-        .desktop-app-icon.phone { background: linear-gradient(145deg, #66d57c 0%, #2ca951 100%); }
-        .desktop-app-icon.notes { background: linear-gradient(145deg, #f6b94c 0%, #eb8c2f 100%); }
-        .desktop-app-icon.calendar { background: linear-gradient(145deg, #f56d6d 0%, #dd4747 100%); }
-        .desktop-app-icon.files { background: linear-gradient(145deg, #65c7be 0%, #3fa398 100%); }
-        .desktop-app-icon.worldbook { background: linear-gradient(145deg, #7f8cff 0%, #5669ec 100%); }
-        .desktop-app-icon.countdown { background: linear-gradient(145deg, #f59d76 0%, #eb7456 100%); }
-        .desktop-app-icon.weather { background: linear-gradient(145deg, #68b6ff 0%, #4590ff 100%); }
+        .desktop-app-icon.wechat { background: linear-gradient(145deg, #66dda8 0%, #37bf8c 100%); }
+        .desktop-app-icon.store { background: linear-gradient(145deg, #7ab7ff 0%, #5a8bff 100%); }
+        .desktop-app-icon.settings { background: linear-gradient(145deg, #bec6d6 0%, #99a7c1 100%); }
+        .desktop-app-icon.phone { background: linear-gradient(145deg, #8bdf9d 0%, #58b978 100%); }
+        .desktop-app-icon.notes { background: linear-gradient(145deg, #ffd27f 0%, #ffac71 100%); }
+        .desktop-app-icon.calendar { background: linear-gradient(145deg, #ff9bb6 0%, #ff7894 100%); }
+        .desktop-app-icon.files { background: linear-gradient(145deg, #8de4d8 0%, #67c9c2 100%); }
+        .desktop-app-icon.worldbook { background: linear-gradient(145deg, #a3a5ff 0%, #7f83f4 100%); }
+        .desktop-app-icon.countdown { background: linear-gradient(145deg, #ffb09a 0%, #ff8f82 100%); }
+        .desktop-app-icon.weather { background: linear-gradient(145deg, #86c9ff 0%, #62a2ff 100%); }
         .desktop-app-icon img {
             width: 100%;
             height: 100%;
             object-fit: contain;
             padding: 4px;
             border-radius: inherit;
+            display: block;
+        }
+        .desktop-icon-svg {
+            width: 70%;
+            height: 70%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+        }
+        .desktop-icon-svg svg {
+            width: 100%;
+            height: 100%;
             display: block;
         }
         .desktop-app-name {
@@ -342,7 +371,7 @@
         .desktop-dock .desktop-app-icon {
             width: 56px;
             height: 56px;
-            border-radius: 17px;
+            border-radius: 18px;
         }
         .desktop-dock .desktop-app-icon-wrap {
             width: 56px;
@@ -530,16 +559,16 @@
             font-size: 24px;
             flex-shrink: 0;
         }
-        .store-app-icon.wechat { background: linear-gradient(145deg, #35d75f 0%, #22b14a 100%); }
-        .store-app-icon.store { background: linear-gradient(145deg, #4f95ff 0%, #2b6add 100%); }
-        .store-app-icon.settings { background: linear-gradient(145deg, #a5acba 0%, #737d90 100%); }
-        .store-app-icon.phone { background: linear-gradient(145deg, #66d57c 0%, #2ca951 100%); }
-        .store-app-icon.notes { background: linear-gradient(145deg, #f6b94c 0%, #eb8c2f 100%); }
-        .store-app-icon.calendar { background: linear-gradient(145deg, #f56d6d 0%, #dd4747 100%); }
-        .store-app-icon.files { background: linear-gradient(145deg, #65c7be 0%, #3fa398 100%); }
-        .store-app-icon.worldbook { background: linear-gradient(145deg, #7f8cff 0%, #5669ec 100%); }
-        .store-app-icon.countdown { background: linear-gradient(145deg, #f59d76 0%, #eb7456 100%); }
-        .store-app-icon.weather { background: linear-gradient(145deg, #68b6ff 0%, #4590ff 100%); }
+        .store-app-icon.wechat { background: linear-gradient(145deg, #66dda8 0%, #37bf8c 100%); }
+        .store-app-icon.store { background: linear-gradient(145deg, #7ab7ff 0%, #5a8bff 100%); }
+        .store-app-icon.settings { background: linear-gradient(145deg, #bec6d6 0%, #99a7c1 100%); }
+        .store-app-icon.phone { background: linear-gradient(145deg, #8bdf9d 0%, #58b978 100%); }
+        .store-app-icon.notes { background: linear-gradient(145deg, #ffd27f 0%, #ffac71 100%); }
+        .store-app-icon.calendar { background: linear-gradient(145deg, #ff9bb6 0%, #ff7894 100%); }
+        .store-app-icon.files { background: linear-gradient(145deg, #8de4d8 0%, #67c9c2 100%); }
+        .store-app-icon.worldbook { background: linear-gradient(145deg, #a3a5ff 0%, #7f83f4 100%); }
+        .store-app-icon.countdown { background: linear-gradient(145deg, #ffb09a 0%, #ff8f82 100%); }
+        .store-app-icon.weather { background: linear-gradient(145deg, #86c9ff 0%, #62a2ff 100%); }
         .store-app-icon img {
             width: 100%;
             height: 100%;
@@ -1071,7 +1100,39 @@
             user-select: none;
         }
         .status-time { font-weight: 600; }
-        .status-icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+        .status-icons { display: flex; gap: 8px; align-items: center; font-size: 12px; line-height: 1; }
+        .status-network {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            opacity: 0.95;
+        }
+        .status-signal-icon,
+        .status-battery-icon {
+            width: 18px;
+            height: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: currentColor;
+        }
+        .status-signal-icon svg,
+        .status-battery-icon svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .status-battery-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-battery-percent {
+            font-size: 11px;
+            font-weight: 700;
+            min-width: 34px;
+            text-align: left;
+        }
 
         /* Dynamic Header */
         .nav-bar {
@@ -1939,9 +2000,25 @@
     <div class="status-bar">
         <div class="status-time" id="status-time">12:00</div>
         <div class="status-icons">
-            <span>5G</span>
-            <span>📶</span>
-            <span>🔋 100%</span>
+            <span class="status-network">5G</span>
+            <span class="status-signal-icon" aria-hidden="true">
+                <svg viewBox="0 0 18 12" fill="none">
+                    <rect x="1" y="8.6" width="2.1" height="2.4" rx="0.6" fill="currentColor" opacity=".45"></rect>
+                    <rect x="4.4" y="6.8" width="2.1" height="4.2" rx="0.6" fill="currentColor" opacity=".62"></rect>
+                    <rect x="7.8" y="5" width="2.1" height="6" rx="0.6" fill="currentColor" opacity=".8"></rect>
+                    <rect x="11.2" y="3.2" width="2.1" height="7.8" rx="0.6" fill="currentColor"></rect>
+                </svg>
+            </span>
+            <span class="status-battery-wrap" aria-label="电量 100%">
+                <span class="status-battery-icon" aria-hidden="true">
+                    <svg viewBox="0 0 20 12" fill="none">
+                        <rect x="1" y="1.6" width="15.6" height="8.8" rx="2.2" stroke="currentColor" stroke-width="1.4"></rect>
+                        <rect x="17.1" y="4.2" width="1.8" height="3.6" rx="1" fill="currentColor"></rect>
+                        <rect x="2.6" y="3.2" width="12.4" height="5.6" rx="1.2" fill="currentColor"></rect>
+                    </svg>
+                </span>
+                <span class="status-battery-percent" id="status-battery-percent">100%</span>
+            </span>
         </div>
     </div>
     <div id="top-drop-notice" class="top-drop-notice">
@@ -2863,6 +2940,18 @@ const DESKTOP_APP_DEFS = [
     { id: 'weather', name: '天气', icon: '⛅', iconClass: 'weather', desc: '今日天气摘要', removable: true, changeable: true, inStore: true },
     { id: 'phone', name: '电话', icon: '📞', iconClass: 'phone', desc: '仅图标展示', removable: true, changeable: true, inStore: true }
 ];
+const DESKTOP_ICON_SVG_MAP = {
+    wechat: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.2 6.8c-2.8 0-5 1.9-5 4.3 0 1.6 1 3 2.6 3.8l-.5 2.1 2.3-1.2c.2 0 .4.1.6.1 2.8 0 5-1.9 5-4.3s-2.2-4.8-5-4.8Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.6 9.4c-3.3 0-6 2.2-6 5 0 1.5.8 2.8 2.1 3.7l-.4 2 2.1-1.1c.7.2 1.4.4 2.2.4 3.3 0 6-2.2 6-5s-2.7-5-6-5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    store: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 9h14l-1 10H6L5 9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.2 9V7.7a3.8 3.8 0 0 1 7.6 0V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m12 14.9.9-1.7a1 1 0 0 1 1.8 0l.9 1.7 1.8.2c.8 0 1.1 1 .5 1.5l-1.3 1.2.3 1.7c.2.8-.7 1.4-1.4 1l-1.6-.8-1.6.8c-.7.4-1.6-.2-1.4-1l.3-1.7-1.3-1.2c-.6-.6-.3-1.5.5-1.5l1.6-.2Z" fill="currentColor" fill-opacity=".92"/></svg>`,
+    settings: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9.2A2.8 2.8 0 1 0 12 14.8 2.8 2.8 0 0 0 12 9.2Z" stroke="currentColor" stroke-width="1.8"/><path d="M12 4v1.8M12 18.2V20M4.9 6.2l1.3 1.3M17.8 17.8l1.3 1.3M4 12h1.8M18.2 12H20M4.9 17.8l1.3-1.3M17.8 6.2l1.3-1.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="6.2" stroke="currentColor" stroke-width="1.6"/></svg>`,
+    memo: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4.2" y="3.5" width="15.6" height="17" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 8.8h8M8 12h8M8 15.2h5.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m16.8 17.6.6-1.2a.7.7 0 0 1 1.3 0l.6 1.2 1.3.2c.6 0 .8.7.3 1l-.9.8.2 1.2c.1.6-.5 1-.9.7l-1.1-.5-1 .5c-.5.3-1.1-.1-1-.7l.2-1.2-.9-.9c-.5-.3-.2-.9.3-1l1-.1Z" fill="currentColor"/></svg>`,
+    calendar: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5.2" width="17" height="15.3" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M7.3 3.8v2.6M16.7 3.8v2.6M3.5 9.2h17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="14.1" r="2.5" fill="currentColor" fill-opacity=".92"/><path d="m11.2 14.1.6.6 1.1-1.1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    files: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.8 8a2.5 2.5 0 0 1 2.5-2.5h3.4l1.5 1.6h6.5A2.5 2.5 0 0 1 20.2 9v8.6a2.5 2.5 0 0 1-2.5 2.5H6.3a2.5 2.5 0 0 1-2.5-2.5V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6.8 12h10.4M6.8 15.2h7.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    worldbook: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.2 5.2h5.2a3 3 0 0 1 2.3 1.1 3 3 0 0 1 2.3-1.1h3.8v13.6H15a3.6 3.6 0 0 0-2.3.8 3.6 3.6 0 0 0-2.3-.8H5.2V5.2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12.7 8.5h3.6M12.7 11h3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="m8.2 12 .5-1a.6.6 0 0 1 1 0l.5 1 1 .2c.5 0 .7.7.3 1l-.8.7.2 1c.1.5-.5.9-.9.6l-.8-.4-.9.4c-.4.3-1-.1-.8-.6l.2-1-.8-.7c-.4-.3-.2-.9.3-1l1-.2Z" fill="currentColor"/></svg>`,
+    countdown: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8M9.1 20h5.8M8.4 7h7.2l-.9 3.4a4.4 4.4 0 0 1 0 3.2l.9 3.4H8.4l.9-3.4a4.4 4.4 0 0 1 0-3.2L8.4 7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10.1 11.6h3.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    weather: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="8.8" cy="9" r="2.6" stroke="currentColor" stroke-width="1.8"/><path d="M8.8 4.2v1.3M8.8 12.5v1.3M5.4 9H4.1M13.5 9h-1.3M6.2 6.4l-.9-.9M12.3 12.5l-.9-.9M6.2 11.6l-.9.9M12.3 5.5l-.9.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M11.4 17.6a2.8 2.8 0 0 1 2.7-3.3 3.4 3.4 0 0 1 6.4 1.4 2.3 2.3 0 0 1-.5 4.5h-8.4a2.1 2.1 0 0 1-.2-4.2Z" fill="currentColor" fill-opacity=".92"/></svg>`,
+    phone: `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7.2 4.8h2.2l1.1 2.8-1.6 1.2c.9 1.9 2.4 3.5 4.3 4.3l1.2-1.6 2.8 1.1v2.2a1.6 1.6 0 0 1-1.8 1.6C9 16.9 7.1 15 5.6 8.8A1.6 1.6 0 0 1 7.2 4.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`
+};
 const API_CONFIG = { ...DEFAULT_API_CONFIG };
 const DESKTOP_GRID_COLUMNS = 4;
 const DESKTOP_GRID_ROWS = 4;
@@ -3266,11 +3355,160 @@ const app = {
 
     normalizeApiConfig: (apiLike = {}) => {
         const fallback = state.settings?.api || DEFAULT_API_CONFIG;
+        const rawUrl = `${apiLike.url || fallback.url || DEFAULT_API_CONFIG.url}`.trim();
         return {
-            url: `${apiLike.url || fallback.url || DEFAULT_API_CONFIG.url}`.trim(),
+            url: app.normalizeApiUrl(rawUrl),
             key: `${apiLike.key || fallback.key || ''}`.trim(),
             model: `${apiLike.model || fallback.model || DEFAULT_API_CONFIG.model}`.trim()
         };
+    },
+
+    normalizeApiUrl: (rawUrl = '') => {
+        const input = `${rawUrl || ''}`.trim();
+        if (!input) return '';
+        try {
+            const parsed = new URL(input);
+            parsed.pathname = (parsed.pathname || '/').replace(/\/{2,}/g, '/');
+            return parsed.toString();
+        } catch (_) {
+            return input.replace(/([^:]\/)\/+/g, '$1');
+        }
+    },
+
+    buildApiAuthHeaders: (rawKey = '') => {
+        const key = `${rawKey || ''}`.trim().replace(/^Bearer\s+/i, '');
+        const headers = { Accept: 'application/json' };
+        if (!key) return headers;
+        headers.Authorization = `Bearer ${key}`;
+        headers['x-api-key'] = key;
+        headers['x-goog-api-key'] = key;
+        return headers;
+    },
+
+    extractChatTextFromPayload: (payload) => {
+        if (!payload || typeof payload !== 'object') return '';
+        const normalize = (value) => app.normalizeModelReplyInput(value);
+        const choices = Array.isArray(payload.choices) ? payload.choices : [];
+        const firstChoice = choices[0] || {};
+        const message = firstChoice?.message || {};
+        const messageContent = normalize(message?.content);
+        if (messageContent) return messageContent;
+        const choiceText = normalize(firstChoice?.text || firstChoice?.delta?.content || firstChoice?.content);
+        if (choiceText) return choiceText;
+        const outputText = normalize(payload.output_text || payload.completion || payload.result || payload.answer);
+        if (outputText) return outputText;
+        if (Array.isArray(payload.output)) {
+            for (const item of payload.output) {
+                const content = Array.isArray(item?.content) ? item.content : [];
+                for (const part of content) {
+                    const partText = normalize(part?.text || part?.content || part?.output_text || part?.value);
+                    if (partText) return partText;
+                }
+                const itemText = normalize(item?.text || item?.content);
+                if (itemText) return itemText;
+            }
+        }
+        const topContent = normalize(payload.content || payload.text || payload.message);
+        if (topContent) return topContent;
+        return '';
+    },
+
+    parseSseResponseBody: (rawBody = '') => {
+        const source = `${rawBody || ''}`;
+        if (!/^\s*data\s*:/m.test(source)) return null;
+        const lines = source.split(/\r?\n/);
+        const chunks = [];
+        let done = false;
+        lines.forEach(line => {
+            const hit = line.match(/^\s*data\s*:\s*(.*)\s*$/);
+            if (!hit) return;
+            const dataText = `${hit[1] || ''}`.trim();
+            if (!dataText) return;
+            if (dataText === '[DONE]') {
+                done = true;
+                return;
+            }
+            try {
+                chunks.push(JSON.parse(dataText));
+            } catch (_) {}
+        });
+        if (!chunks.length && !done) return null;
+        const pieces = [];
+        let usage = null;
+        let errorMessage = '';
+        chunks.forEach(chunk => {
+            const text = app.extractChatTextFromPayload(chunk);
+            if (text) pieces.push(text);
+            if (!usage && chunk?.usage) usage = chunk.usage;
+            if (!errorMessage) errorMessage = `${chunk?.error?.message || chunk?.message || ''}`.trim();
+        });
+        return {
+            content: pieces.join('').trim(),
+            usage,
+            done,
+            chunkCount: chunks.length,
+            errorMessage
+        };
+    },
+
+    normalizeChatCompletionPayload: (payload, rawBody = '') => {
+        if (payload && typeof payload === 'object' && Array.isArray(payload.choices) && payload.choices.length) {
+            return payload;
+        }
+        const sse = app.parseSseResponseBody(rawBody);
+        if (sse) {
+            if (sse.content) {
+                return {
+                    ...(payload && typeof payload === 'object' ? payload : {}),
+                    usage: payload?.usage || sse.usage || null,
+                    choices: [{
+                        index: 0,
+                        finish_reason: 'stop',
+                        message: {
+                            role: 'assistant',
+                            content: sse.content
+                        }
+                    }]
+                };
+            }
+            return {
+                ...(payload && typeof payload === 'object' ? payload : {}),
+                usage: payload?.usage || sse.usage || null,
+                error: sse.errorMessage ? { message: sse.errorMessage } : undefined,
+                _sseEmpty: true,
+                _sseDone: sse.done,
+                _sseChunkCount: sse.chunkCount,
+                choices: []
+            };
+        }
+        const extracted = app.extractChatTextFromPayload(payload);
+        if (extracted) {
+            return {
+                ...(payload && typeof payload === 'object' ? payload : {}),
+                choices: [{
+                    index: 0,
+                    finish_reason: 'stop',
+                    message: {
+                        role: 'assistant',
+                        content: extracted
+                    }
+                }]
+            };
+        }
+        const plain = `${rawBody || ''}`.trim();
+        if (plain) {
+            return {
+                choices: [{
+                    index: 0,
+                    finish_reason: 'stop',
+                    message: {
+                        role: 'assistant',
+                        content: plain
+                    }
+                }]
+            };
+        }
+        return payload || {};
     },
 
     normalizeDesktopSettings: (desktopLike = {}) => {
@@ -5116,7 +5354,12 @@ const app = {
     },
 
     renderDesktopIconMarkup: (appId, desktopSettings = null) => {
-        const icon = app.getDesktopAppIcon(appId, desktopSettings);
+        const settings = desktopSettings || app.getDesktopSettings();
+        const hasCustom = !!settings?.customAppIcons?.[appId];
+        if (!hasCustom && DESKTOP_ICON_SVG_MAP[appId]) {
+            return `<span class="desktop-icon-svg" aria-hidden="true">${DESKTOP_ICON_SVG_MAP[appId]}</span>`;
+        }
+        const icon = app.getDesktopAppIcon(appId, settings);
         const isImage = /^(data:image\/|https?:\/\/)/i.test(`${icon || ''}`);
         if (isImage) {
             const alt = app.escapeHtml(app.getDesktopAppDef(appId)?.name || 'app');
@@ -6780,10 +7023,11 @@ const app = {
         const def = app.getDesktopAppDef(appId);
         if (!def) return;
         const settings = app.getDesktopSettings();
-        const currentIconRaw = app.getDesktopAppIcon(appId, settings);
-        const currentIcon = /^(data:image\/|https?:\/\/)/i.test(`${currentIconRaw || ''}`)
-            ? `<img src="${app.escapeHtml(currentIconRaw)}" alt="icon" style="width:30px;height:30px;border-radius:8px;object-fit:contain;vertical-align:middle;padding:2px;background:rgba(17,24,39,0.06);">`
-            : `<span style="font-size:20px;">${app.escapeHtml(currentIconRaw)}</span>`;
+        const currentIcon = `
+            <span style="display:inline-flex;width:34px;height:34px;border-radius:10px;align-items:center;justify-content:center;background:linear-gradient(145deg,#fff6fb,#edf2ff);border:1px solid rgba(160,170,200,0.24);vertical-align:middle;">
+                ${app.renderDesktopIconMarkup(appId, settings)}
+            </span>
+        `;
         const iconOptions = ['😀', '⭐', '🔥', '🌈', '🎵', '🚀', '🍀', '🐱', '📌', '💡'];
         const iconButtons = iconOptions
             .map(icon => `<button class="template-tag" style="margin:4px;cursor:pointer;" onclick="app.applyDesktopCustomIcon('${appId}', '${icon}')">${icon}</button>`)
@@ -8438,9 +8682,7 @@ const app = {
     },
 
     logModelResponse: (scene = 'unknown', rawBody = '', data = null, meta = {}) => {
-        const content = typeof data?.choices?.[0]?.message?.content === 'string'
-            ? data.choices[0].message.content
-            : '';
+        const content = app.extractChatTextFromPayload(data);
         console.log(`[AI RAW][${scene}]`, {
             ...meta,
             rawBody: typeof rawBody === 'string' ? rawBody : '',
@@ -8454,15 +8696,20 @@ const app = {
             const retries = Number.isFinite(options.retries) ? options.retries : 3;
             const retryDelayMs = Number.isFinite(options.retryDelayMs) ? options.retryDelayMs : 700;
             const scene = options.scene || 'chat';
+            const apiUrl = app.normalizeApiUrl(API_CONFIG.url);
+            if (!apiUrl) throw new Error('请先在系统设置填写 Base URL');
+            if (window.location.protocol === 'https:' && /^http:\/\//i.test(apiUrl)) {
+                throw new Error('当前页面是 HTTPS，浏览器会拦截 HTTP 接口请求。请将 Base URL 改为 https://。');
+            }
             let lastError = null;
 
             for (let attempt = 0; attempt <= retries; attempt += 1) {
                 try {
-                    const res = await fetch(API_CONFIG.url, {
+                    const res = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${API_CONFIG.key}`
+                            ...app.buildApiAuthHeaders(API_CONFIG.key)
                         },
                         body: JSON.stringify(payload)
                     });
@@ -8479,10 +8726,11 @@ const app = {
                         try {
                             data = JSON.parse(rawBody);
                         } catch (_) {
-                            data = null;
+                            data = app.normalizeChatCompletionPayload(null, rawBody);
                             console.warn(`[AI RAW][${scene}] JSON parse failed`, rawBody);
                         }
                     }
+                    data = app.normalizeChatCompletionPayload(data, rawBody);
 
                     app.logModelResponse(scene, rawBody, data, {
                         status: res.status,
@@ -8493,6 +8741,33 @@ const app = {
                     if (!res.ok) {
                         const error = new Error(data?.error?.message || data?.message || rawBody || `请求失败（${res.status}）`);
                         error.status = res.status;
+                        error.payload = data;
+                        throw error;
+                    }
+
+                    const normalizedContent = app.extractChatTextFromPayload(data);
+                    if (!normalizedContent) {
+                        const usage = data?.usage || {};
+                        const promptTokens = Number(
+                            usage.prompt_tokens
+                            ?? usage.prompttokens
+                            ?? usage.input_tokens
+                            ?? usage.inputtokens
+                            ?? 0
+                        ) || 0;
+                        const completionTokens = Number(
+                            usage.completion_tokens
+                            ?? usage.completiontokens
+                            ?? usage.output_tokens
+                            ?? usage.outputtokens
+                            ?? 0
+                        ) || 0;
+                        const isSseEmpty = !!data?._sseEmpty;
+                        const detail = isSseEmpty
+                            ? `网关返回了 SSE 数据帧但没有正文（prompt=${promptTokens}, completion=${completionTokens}）`
+                            : '接口返回成功但正文为空';
+                        const error = new Error(`${detail}，请检查上游是否把 max_tokens 设为 0，或上下文是否过长导致被截断。`);
+                        error.status = 502;
                         error.payload = data;
                         throw error;
                     }
@@ -11662,6 +11937,9 @@ const app = {
 
     probeModelsEndpoint: async (forModels = false) => {
         const draft = app.readApiDraftFromSettings();
+        if (window.location.protocol === 'https:' && /^http:\/\//i.test(draft.url || '')) {
+            throw new Error('当前网页是 HTTPS，浏览器会拦截 HTTP 接口。请把 Base URL 换成 https://。');
+        }
         const modelsUrl = app.getModelsEndpointFromApiUrl(draft.url);
         if (!modelsUrl) throw new Error('请先填写正确的 Base URL');
         if (!draft.key) throw new Error('请先填写 API Key');
