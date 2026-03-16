@@ -8698,9 +8698,6 @@ const app = {
             const scene = options.scene || 'chat';
             const apiUrl = app.normalizeApiUrl(API_CONFIG.url);
             if (!apiUrl) throw new Error('请先在系统设置填写 Base URL');
-            if (window.location.protocol === 'https:' && /^http:\/\//i.test(apiUrl)) {
-                throw new Error('HTTP具有安全问题请小心谨慎。');
-            }
             let lastError = null;
 
             for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -11937,9 +11934,6 @@ const app = {
 
     probeModelsEndpoint: async (forModels = false) => {
         const draft = app.readApiDraftFromSettings();
-        if (window.location.protocol === 'https:' && /^http:\/\//i.test(draft.url || '')) {
-            throw new Error('HTTP具有安全问题请小心谨慎。');
-        }
         const modelsUrl = app.getModelsEndpointFromApiUrl(draft.url);
         if (!modelsUrl) throw new Error('请先填写正确的 Base URL');
         if (!draft.key) throw new Error('请先填写 API Key');
